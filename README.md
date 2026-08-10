@@ -1,6 +1,8 @@
 # Sengled Control — Local Sengled Bulb Control
 
-Control **Sengled smart bulbs entirely over your local network** — no cloud, no accounts, no Internet required. Everything talks to the bulbs over the local Sengled UDP protocol (port 9080).
+Control **Sengled smart bulbs entirely over your local network** — no cloud, no accounts, no Internet required.
+
+This project keeps **discontinued Sengled bulbs alive**. The manufacturer stopped supporting these models, their cloud service was shut down, and the official app stopped working — so this project talks to the **Sengled W21-N11** white bulbs (EMW3091 module, fixed 2700K) directly over the local Sengled UDP protocol (port 9080).
 
 ## What's in this repo
 
