@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Focos Sengled</string>
+
+    <string name="status_on">Prendida</string>
+    <string name="status_off">Apagada</string>
+    <string name="status_offline">Sin conexión</string>
+    <string name="status_checking">Comprobando…</string>
+
+    <string name="brightness_label">Brillo</string>
+    <string name="brightness_percent">%1$d%%</string>
+
+    <string name="rename_title">Renombrar foco</string>
+    <string name="rename_save">Guardar</string>
+    <string name="rename_cancel">Cancelar</string>
+
+    <string name="content_desc_rename">Renombrar foco</string>
+    <string name="content_desc_refresh">Actualizar estado de los focos</string>
+
+    <string name="action_schedule">Rutinas</string>
+
+    <string name="routine_title">Rutina</string>
+    <string name="routine_bulb_label">Foco</string>
+    <string name="routine_on_at">Encender a las %1$s</string>
+    <string name="routine_off_at">Apagar a las %1$s</string>
+    <string name="routine_am">AM</string>
+    <string name="routine_pm">PM</string>
+    <string name="routine_enable">Activar rutina</string>
+    <string name="routine_brightness_label">Brillo al encender: %1$d%%</string>
+    <string name="routine_save">Guardar</string>
+    <string name="routine_cancel">Cancelar</string>
+
+    <string name="routine_service_channel_name">Rutinas</string>
+    <string name="routine_service_event_channel_name">Avisos de rutina</string>
+    <string name="routine_service_notification_title">Rutinas activas</string>
+    <string name="routine_service_notification_text">La app controla tus focos a las horas programadas</string>
+    <string name="routine_service_notification_next">Próxima a las %1$s</string>
+    <string name="routine_on_notification">%1$s se encendió</string>
+    <string name="routine_off_notification">%1$s se apagó</string>
+    <string name="routine_notification_body_at">A las %1$s</string>
+
+    <string name="main_subtitle_version">v%1$s</string>
+    <string name="main_subtitle_routine_active">Rutina: %1$s: %2$s → %3$s</string>
+    <string name="main_subtitle_no_routine">Sin rutina configurada</string>
+    <string name="notif_disabled_message">Las notificaciones están desactivadas para Focos Sengled. Activá las notificaciones en los ajustes de MIUI para recibir los avisos de las rutinas.</string>
+    <string name="notif_disabled_action">Abrir ajustes</string>
+</resources>

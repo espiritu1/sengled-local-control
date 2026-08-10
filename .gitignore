@@ -1,0 +1,29 @@
+# --- Android / Gradle ---
+.gradle/
+**/build/
+local.properties
+*.apk
+
+# --- Python ---
+__pycache__/
+*.pyc
+.venv/
+
+# --- Local device dumps (SharedPreferences exports) ---
+prefs_*.xml
+
+# --- Local agent memory ---
+.atl/
+
+# --- Separate fork (see README) ---
+SengledTools/
+
+# --- Editors / OS ---
+.idea/
+*.iml
+.vscode/
+Thumbs.db
+.DS_Store
+
+# --- Logs / diagnostics ---
+*.log

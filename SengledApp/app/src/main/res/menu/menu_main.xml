@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_refresh"
+        android:title="@string/content_desc_refresh"
+        app:icon="@drawable/ic_refresh"
+        app:showAsAction="always" />
+
+    <item
+        android:id="@+id/action_schedule"
+        android:title="@string/action_schedule"
+        app:icon="@drawable/ic_schedule"
+        app:showAsAction="always" />
+</menu>
