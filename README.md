@@ -27,10 +27,10 @@ Native app (minSdk 24, targetSdk 34) that talks directly to each bulb over UDP. 
 ```powershell
 cd SengledApp
 $env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-17.x"
-gradle assembleDebug --no-daemon
+.\gradlew.bat assembleDebug --no-daemon
 ```
 
-APKs land in `SengledApp/app/build/outputs/apk/debug/`.
+On Linux/macOS use `./gradlew assembleDebug`. Requires Java 17 (AGP 8.5.2). APKs land in `SengledApp/app/build/outputs/apk/debug/`.
 
 ### Network requirements
 
