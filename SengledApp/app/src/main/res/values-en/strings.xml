@@ -100,7 +100,7 @@
     <string name="info_section_wifi">Why WiFi 2.4 GHz?</string>
     <string name="info_section_wifi_text">Sengled W21-N11 bulbs only work on 2.4 GHz networks. Better range and wall penetration than 5 GHz, ideal for IoT devices.</string>
     <string name="info_section_contact">Have a question or suggestion about this app?</string>
-    <string name="info_section_contact_text">If you have an improvement or new feature in mind, write me at:\n\n<b>fere.espiritu@gmail.com</b>\n\nWe will review if the proposed functionality is viable.\n\nThe app is available on my GitHub repository:\nhttps://github.com/espiritu1/SengledTools</string>
+    <string name="info_section_contact_text">If you have an improvement or new feature in mind, write me at:\n\n<b>fere.espiritu@gmail.com</b>\n\nWe will review if the proposed functionality is viable.\n\nThe app is available on my GitHub repository:\nhttps://github.com/espiritu1/sengled-local-control</string>
 
     <string name="info_buttons_title">Buttons</string>
     <string name="info_btn_refresh">Refresh — Checks the status of your bulbs</string>

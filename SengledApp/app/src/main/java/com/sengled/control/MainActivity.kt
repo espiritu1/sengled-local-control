@@ -176,8 +176,8 @@ class MainActivity : AppCompatActivity(), BulbAdapter.Listener {
         fun section(titleKey: Int, textKey: Int): String {
             var text = getString(textKey).replace("fere.espiritu@gmail.com",
                 "<a href='mailto:fere.espiritu@gmail.com'><b>fere.espiritu@gmail.com</b></a>")
-            text = text.replace("https://github.com/espiritu1/SengledTools",
-                "<a href='https://github.com/espiritu1/SengledTools'>https://github.com/espiritu1/SengledTools</a>")
+            text = text.replace("https://github.com/espiritu1/sengled-local-control",
+                "<a href='https://github.com/espiritu1/sengled-local-control'>https://github.com/espiritu1/sengled-local-control</a>")
             return "<br><br><font color='$purple' size='18'><b>${getString(titleKey)}</b></font><br><br>$text"
         }
 

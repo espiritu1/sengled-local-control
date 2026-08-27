@@ -100,7 +100,7 @@
     <string name="info_section_wifi">¿Por qué WiFi 2.4 GHz?</string>
     <string name="info_section_wifi_text">Los focos Sengled W21-N11 solo funcionan en redes de 2.4 GHz. Tiene mejor alcance y penetración de paredes que 5 GHz, ideal para dispositivos IoT.</string>
     <string name="info_section_contact">¿Tienes alguna duda o sugerencia sobre esta app?</string>
-    <string name="info_section_contact_text">Si tienes una mejora o nueva funcionalidad en mente, escríbeme a:\n\n<b>fere.espiritu@gmail.com</b>\n\nRevisaremos si la funcionalidad que propones es viable.\n\nLa app está disponible en mi repositorio de GitHub:\nhttps://github.com/espiritu1/SengledTools</string>
+    <string name="info_section_contact_text">Si tienes una mejora o nueva funcionalidad en mente, escríbeme a:\n\n<b>fere.espiritu@gmail.com</b>\n\nRevisaremos si la funcionalidad que propones es viable.\n\nLa app está disponible en mi repositorio de GitHub:\nhttps://github.com/espiritu1/sengled-local-control</string>
 
     <string name="info_buttons_title">Botones</string>
     <string name="info_btn_refresh">Actualizar — Verifica el estado de los focos</string>
