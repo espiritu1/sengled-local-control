@@ -37,13 +37,31 @@
                 tools:text="Lampara de sala" />
 
             <ImageButton
+                android:id="@+id/btnDelete"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/content_desc_delete"
+                android:src="@drawable/ic_delete"
+                android:tint="@color/icon_red" />
+
+            <ImageButton
+                android:id="@+id/btnSchedule"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/content_desc_schedule"
+                android:src="@drawable/ic_schedule"
+                android:tint="@color/text_secondary" />
+
+            <ImageButton
                 android:id="@+id/btnRename"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/content_desc_rename"
                 android:src="@drawable/ic_edit"
-                android:tint="@color/text_secondary" />
+                android:tint="@color/icon_blue" />
         </LinearLayout>
 
         <LinearLayout

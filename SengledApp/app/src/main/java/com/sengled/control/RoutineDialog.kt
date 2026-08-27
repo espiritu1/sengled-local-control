@@ -3,32 +3,25 @@ package com.sengled.control
 import android.app.TimePickerDialog
 import android.content.Context
 import android.view.LayoutInflater
-import android.view.View
-import android.widget.AdapterView
-import android.widget.ArrayAdapter
 import android.widget.SeekBar
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.sengled.control.databinding.DialogRoutineBinding
 import java.util.Locale
 
 /**
- * Per-bulb routine editor: pick a bulb, choose ON/OFF times (AM/PM TimePicker
- * with an always-visible AM/PM toggle), toggle the whole routine, then save.
- * The dialog loads each bulb's saved config when it is selected, so it behaves
- * as a general editor over all bulbs.
+ * Single-bulb routine editor: shows the bulb's name and IP, then lets you
+ * pick ON/OFF times (AM/PM TimePicker with an always-visible AM/PM toggle),
+ * brightness, and enable/disable toggle.
  */
 object RoutineDialog {
 
     fun show(
         context: Context,
-        bulbs: List<Bulb>,
-        initialBulbId: String,
+        bulb: Bulb,
         onSaved: (bulbId: String, enabled: Boolean, onMinutes: Int, offMinutes: Int, brightness: Int) -> Unit
     ) {
-        if (bulbs.isEmpty()) return
-
         val binding = DialogRoutineBinding.inflate(LayoutInflater.from(context))
-        var selectedBulbId = bulbs.first().id
+        var selectedBulbId = bulb.id
         var onMinutes = 19 * 60 + 30
         var offMinutes = 0
         var routineBrightness = 1
@@ -117,27 +110,9 @@ object RoutineDialog {
             }
         }
 
-        val labels = bulbs.map { "${it.name} - ${it.ip}" }
-        binding.spinnerBulb.adapter = ArrayAdapter(
-            context,
-            R.layout.item_spinner,
-            labels
-        ).apply {
-            setDropDownViewResource(R.layout.item_spinner)
-        }
-
-        binding.spinnerBulb.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                selectedBulbId = bulbs[position].id
-                loadRoutine(selectedBulbId)
-            }
-
-            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
-        }
-
-        val startIndex = bulbs.indexOfFirst { it.id == initialBulbId }.coerceAtLeast(0)
-        binding.spinnerBulb.setSelection(startIndex)
-        loadRoutine(selectedBulbId)
+        binding.txtDialogBulbName.text = bulb.name
+        binding.txtDialogBulbIp.text = bulb.ip
+        loadRoutine(bulb.id)
 
         binding.btnRoutineOn.setOnClickListener {
             TimePickerDialog(context, { _, hour, minute ->

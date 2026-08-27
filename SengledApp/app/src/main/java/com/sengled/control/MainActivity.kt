@@ -3,11 +3,15 @@ package com.sengled.control
 import android.content.Intent
 import android.content.SharedPreferences
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.text.Html
+import android.text.method.LinkMovementMethod
 import android.provider.Settings
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NotificationManagerCompat
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.sengled.control.databinding.ActivityMainBinding
 import java.util.Locale
@@ -35,7 +39,18 @@ class MainActivity : AppCompatActivity(), BulbAdapter.Listener {
 
         prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
 
-        bulbs += BulbRegistry.bulbs.map { bulb ->
+        // Apply saved language
+        val savedLang = prefs.getString("lang", null)
+        if (savedLang != null) {
+            val locale = Locale(savedLang)
+            Locale.setDefault(locale)
+            val config = resources.configuration
+            config.setLocale(locale)
+            @Suppress("DEPRECATION")
+            resources.updateConfiguration(config, resources.displayMetrics)
+        }
+
+        bulbs += BulbRegistry.getBulbs(this).map { bulb ->
             bulb.copy(name = prefs.getString("name_${bulb.id}", null) ?: bulb.name)
         }
 
@@ -43,26 +58,24 @@ class MainActivity : AppCompatActivity(), BulbAdapter.Listener {
         binding.recyclerBulbs.layoutManager = LinearLayoutManager(this)
         binding.recyclerBulbs.adapter = adapter
 
-        binding.toolbar.inflateMenu(R.menu.menu_main)
-        binding.toolbar.setOnMenuItemClickListener { item ->
-            when (item.itemId) {
-                R.id.action_refresh -> {
-                    refresh()
-                    true
-                }
-                R.id.action_schedule -> {
-                    showRoutineDialog()
-                    true
-                }
-                else -> false
-            }
+        binding.btnRefresh.setOnClickListener { refresh() }
+        binding.btnAddBulb.setOnClickListener {
+            startActivity(Intent(this, PairingWizardActivity::class.java))
         }
+        binding.btnInfo.setOnClickListener { showInfoDialog() }
+        binding.btnLang.setOnClickListener { toggleLanguage() }
 
         ScheduleManager.startService(this)
 
         setupDiagnostics()
 
         refresh()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Reload bulbs in case new ones were added via the wizard
+        reloadBulbs()
     }
 
     private fun refresh() {
@@ -79,6 +92,20 @@ class MainActivity : AppCompatActivity(), BulbAdapter.Listener {
                     updateBulb(updated)
                 }
             }
+        }
+    }
+
+    private fun reloadBulbs() {
+        val freshBulbs = BulbRegistry.getBulbs(this).map { bulb ->
+            bulb.copy(name = prefs.getString("name_${bulb.id}", null) ?: bulb.name)
+        }
+        // Check for new bulbs
+        val currentIds = bulbs.map { it.id }.toSet()
+        val newBulbs = freshBulbs.filter { it.id !in currentIds }
+        if (newBulbs.isNotEmpty()) {
+            bulbs.addAll(newBulbs)
+            adapter.notifyDataSetChanged()
+            refresh()
         }
     }
 
@@ -115,15 +142,106 @@ class MainActivity : AppCompatActivity(), BulbAdapter.Listener {
         updateBulb(latest.copy(name = newName))
     }
 
-    private fun showRoutineDialog() {
-        val bulb = bulbs.firstOrNull() ?: return
+    override fun onEditSchedule(bulb: Bulb) {
+        showRoutineDialogForBulb(bulb)
+    }
+
+    override fun onDeleteBulb(bulb: Bulb) {
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.delete_title)
+            .setMessage(getString(R.string.delete_confirm_message, bulb.name))
+            .setPositiveButton(R.string.delete_confirm) { _, _ ->
+                BulbRegistry.removeBulb(this, bulb.id)
+                bulbs.removeAll { it.id == bulb.id }
+                adapter.notifyDataSetChanged()
+                ScheduleManager.save(this, bulb.id, false, 0, 0, 1)
+            }
+            .setNegativeButton(R.string.delete_cancel, null)
+            .show()
+    }
+
+    private fun showRoutineDialogForBulb(bulb: Bulb) {
         RoutineDialog.show(
             context = this,
-            bulbs = bulbs.toList(),
-            initialBulbId = bulb.id
+            bulb = bulb
         ) { bulbId, enabled, onMinutes, offMinutes, brightness ->
             ScheduleManager.save(this, bulbId, enabled, onMinutes, offMinutes, brightness)
         }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun showInfoDialog() {
+        val purple = "#BB86FC"
+
+        fun section(titleKey: Int, textKey: Int): String {
+            var text = getString(textKey).replace("fere.espiritu@gmail.com",
+                "<a href='mailto:fere.espiritu@gmail.com'><b>fere.espiritu@gmail.com</b></a>")
+            text = text.replace("https://github.com/espiritu1/SengledTools",
+                "<a href='https://github.com/espiritu1/SengledTools'>https://github.com/espiritu1/SengledTools</a>")
+            return "<br><br><font color='$purple' size='18'><b>${getString(titleKey)}</b></font><br><br>$text"
+        }
+
+        val disclaimerHtml = "<br><br><hr><br><font size='12' color='#888888'>" +
+            "⚠ Esta aplicación NO está afiliada ni es oficial de Sengled.<br><br>" +
+            "La app Android fue desarrollada de forma independiente. El protocolo de comunicación UDP se basa en la documentación del proyecto comunitario " +
+            "<a href='https://github.com/HamzaETTH/SengledTools'>HamzaETTH/SengledTools</a> en GitHub, permitiendo que los focos funcionen de forma local sin depender de servidores externos.</font>"
+
+        val infoHtml = section(R.string.info_section_how, R.string.info_section_how_text) +
+            section(R.string.info_section_routines, R.string.info_section_routines_text) +
+            section(R.string.info_section_router, R.string.info_section_router_text) +
+            section(R.string.info_section_wifi, R.string.info_section_wifi_text) +
+            section(R.string.info_section_contact, R.string.info_section_contact_text) +
+            disclaimerHtml
+
+        val textView = android.widget.TextView(this).apply {
+            setText(Html.fromHtml(infoHtml, Html.FROM_HTML_MODE_LEGACY))
+            movementMethod = LinkMovementMethod.getInstance()
+            setPadding(48, 0, 48, 0)
+            setTextColor(getColor(R.color.text_primary))
+            textSize = 14f
+            setLinkTextColor(getColor(R.color.icon_purple))
+        }
+
+        val buttonsView = layoutInflater.inflate(R.layout.dialog_info, null)
+
+        val container = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            addView(buttonsView)
+            addView(textView)
+        }
+
+        val scrollView = android.widget.ScrollView(this).apply {
+            addView(container)
+        }
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.info_title_dialog)
+            .setView(scrollView)
+            .setPositiveButton("Cerrar", null)
+            .show()
+    }
+
+    private fun toggleLanguage() {
+        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+        val current = prefs.getString("lang", null)
+        val newLang = if (current == "en") null else "en"
+
+        val editor = prefs.edit()
+        if (newLang == null) {
+            editor.remove("lang")
+        } else {
+            editor.putString("lang", newLang)
+        }
+        editor.apply()
+
+        val locale = if (newLang != null) Locale("en") else Locale("es")
+        Locale.setDefault(locale)
+        val config = resources.configuration
+        config.setLocale(locale)
+        @Suppress("DEPRECATION")
+        resources.updateConfiguration(config, resources.displayMetrics)
+
+        recreate()
     }
 
     private fun setupDiagnostics() {
@@ -132,14 +250,9 @@ class MainActivity : AppCompatActivity(), BulbAdapter.Listener {
         } catch (_: Exception) {
             null
         }
-
-        val routinePart = buildRoutineSubtitle()
-        val subtitle = if (version != null) {
-            getString(R.string.main_subtitle_version, version) + " · " + routinePart
-        } else {
-            routinePart
+        if (version != null) {
+            binding.txtVersion.text = "v$version"
         }
-        binding.toolbar.subtitle = subtitle
 
         if (!NotificationManagerCompat.from(this).areNotificationsEnabled()) {
             Snackbar.make(
@@ -153,7 +266,7 @@ class MainActivity : AppCompatActivity(), BulbAdapter.Listener {
     }
 
     private fun buildRoutineSubtitle(): String {
-        for (bulb in BulbRegistry.bulbs) {
+        for (bulb in BulbRegistry.getBulbs(this)) {
             val config = ScheduleManager.getRoutine(this, bulb.id)
             if (config.enabled) {
                 return getString(

@@ -64,11 +64,11 @@ object ScheduleManager {
     }
 
     fun hasEnabledRoutine(context: Context): Boolean =
-        BulbRegistry.bulbs.any { getRoutine(context, it.id).enabled }
+        BulbRegistry.getBulbs(context).any { getRoutine(context, it.id).enabled }
 
     fun getBulbName(context: Context, bulbId: String): String =
         prefs(context).getString("name_$bulbId", null)
-            ?: BulbRegistry.bulbs.firstOrNull { it.id == bulbId }?.name
+            ?: BulbRegistry.getBulbs(context).firstOrNull { it.id == bulbId }?.name
             ?: bulbId
 
     /** Last manual brightness set via the slider, or -1 if never set. */

@@ -21,6 +21,8 @@ class BulbAdapter(
         fun onSwitchChanged(bulb: Bulb, isOn: Boolean)
         fun onBrightnessChanged(bulb: Bulb, value: Int)
         fun onRename(bulb: Bulb, newName: String)
+        fun onEditSchedule(bulb: Bulb)
+        fun onDeleteBulb(bulb: Bulb)
     }
 
     private companion object {
@@ -49,7 +51,9 @@ class BulbAdapter(
 
         b.txtName.text = bulb.name
         b.txtBrightnessValue.text = context.getString(R.string.brightness_percent, bulb.brightness)
+        b.btnSchedule.contentDescription = context.getString(R.string.content_desc_schedule)
         b.btnRename.contentDescription = context.getString(R.string.content_desc_rename)
+        b.btnDelete.contentDescription = context.getString(R.string.content_desc_delete)
 
         when (bulb.connected) {
             null -> {
@@ -100,7 +104,9 @@ class BulbAdapter(
             override fun onStopTrackingTouch(seekBar: SeekBar) = Unit
         })
 
+        b.btnSchedule.setOnClickListener { listener.onEditSchedule(bulb) }
         b.btnRename.setOnClickListener { showRenameDialog(context, bulb) }
+        b.btnDelete.setOnClickListener { listener.onDeleteBulb(bulb) }
     }
 
     private fun showRenameDialog(context: Context, bulb: Bulb) {

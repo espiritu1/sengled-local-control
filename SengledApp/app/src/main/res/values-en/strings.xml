@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Sengled Lights</string>
+
+    <string name="status_on">On</string>
+    <string name="status_off">Off</string>
+    <string name="status_offline">Offline</string>
+    <string name="status_checking">Checking…</string>
+
+    <string name="brightness_label">Brightness</string>
+    <string name="brightness_percent">%1$d%%</string>
+
+    <string name="rename_title">Rename bulb</string>
+    <string name="rename_save">Save</string>
+    <string name="rename_cancel">Cancel</string>
+
+    <string name="content_desc_rename">Rename bulb</string>
+    <string name="content_desc_refresh">Refresh bulb status</string>
+    <string name="content_desc_schedule">Set schedule</string>
+
+    <string name="action_schedule">Routines</string>
+
+    <string name="routine_title">Routine</string>
+    <string name="routine_bulb_label">Bulb</string>
+    <string name="routine_on_at">Turn on at %1$s</string>
+    <string name="routine_off_at">Turn off at %1$s</string>
+    <string name="routine_am">AM</string>
+    <string name="routine_pm">PM</string>
+    <string name="routine_enable">Enable routine</string>
+    <string name="routine_brightness_label">Brightness on: %1$d%%</string>
+    <string name="routine_save">Save</string>
+    <string name="routine_cancel">Cancel</string>
+
+    <string name="routine_service_channel_name">Routines</string>
+    <string name="routine_service_event_channel_name">Routine alerts</string>
+    <string name="routine_service_notification_title">Active routines</string>
+    <string name="routine_service_notification_text">The app controls your lights at scheduled times</string>
+    <string name="routine_service_notification_next">Next at %1$s</string>
+    <string name="routine_on_notification">%1$s turned on</string>
+    <string name="routine_off_notification">%1$s turned off</string>
+    <string name="routine_notification_body_at">At %1$s</string>
+
+    <string name="main_subtitle_version">v%1$s</string>
+    <string name="main_subtitle_routine_active">Routine: %1$s: %2$s → %3$s</string>
+    <string name="main_subtitle_no_routine">No routine set</string>
+    <string name="notif_disabled_message">Notifications are disabled for Sengled Lights. Enable notifications in MIUI settings to receive routine alerts.</string>
+    <string name="notif_disabled_action">Open settings</string>
+
+    <!-- Pairing Wizard -->
+    <string name="pairing_title">Add device</string>
+    <string name="pairing_next">Next</string>
+    <string name="pairing_finish">Done</string>
+    <string name="pairing_cancel">Cancel</string>
+
+    <string name="pairing_step1_title">Your WiFi network</string>
+    <string name="pairing_step1_desc">Enter the name and password of your 2.4 GHz WiFi network.</string>
+    <string name="pairing_hint_ssid">Network name (SSID)</string>
+    <string name="pairing_hint_password">Password</string>
+
+    <string name="pairing_step2_title">Connect to the bulb</string>
+    <string name="pairing_step2_desc">Go to your phone\'s WiFi settings and connect to the bulb\'s network.</string>
+    <string name="pairing_reset_instructions">To activate pairing mode on the bulb:\n\n1. Turn on the bulb\n2. Flick the switch 5 times quickly (on/off)\n3. The bulb will start blinking\n4. Look for the \"Sengled_Wi-Fi Bulb_XXXX\" network in your WiFi</string>
+    <string name="pairing_waiting_ap">Waiting for you to connect to the bulb\'s AP…</string>
+    <string name="pairing_ap_detected">Bulb detected! IP: 192.168.8.1</string>
+
+    <string name="pairing_step3_title">Pairing the bulb</string>
+    <string name="pairing_connecting_bulb">Connecting to the bulb…</string>
+    <string name="pairing_sending_credentials">Sending WiFi credentials to the bulb…</string>
+    <string name="pairing_waiting_verification">Waiting for the bulb to connect to your network…</string>
+    <string name="pairing_verification_success">Bulb connected to your network!</string>
+    <string name="pairing_verification_failed">Could not verify bulb connection.</string>
+    <string name="pairing_error_handshake">Error in handshake with bulb</string>
+    <string name="pairing_error_credentials">Bulb rejected the credentials</string>
+    <string name="pairing_error_scan">Could not scan networks</string>
+
+    <string name="pairing_step4_title">Bulb configured</string>
+    <string name="pairing_bulb_found">Bulb found on your network!</string>
+    <string name="pairing_label_ip">Bulb IP</string>
+    <string name="pairing_label_mac">MAC address</string>
+    <string name="pairing_hint_bulb_name">Bulb name</string>
+    <string name="pairing_hint_static_ip">Static IP (to configure in router)</string>
+    <string name="pairing_static_ip_hint">Reserve this IP in your router so the bulb always has the same address.</string>
+    <string name="pairing_static_ip_suggestion">Suggested IP (add a reservation in your router):</string>
+
+    <!-- Delete bulb -->
+    <string name="content_desc_delete">Delete bulb</string>
+    <string name="delete_title">Delete bulb</string>
+    <string name="delete_confirm_message">Are you sure you want to delete \"%1$s\"? It will be removed from the app but not from the router.</string>
+    <string name="delete_confirm">Delete</string>
+    <string name="delete_cancel">Cancel</string>
+
+    <string name="info_button">Info</string>
+    <string name="info_title_dialog">About Sengled Lights</string>
+    <string name="info_section_how">How does it work?</string>
+    <string name="info_section_how_text">Controls your Sengled W21-N11 bulbs directly over your local network (WiFi), no external servers needed. Communicates via UDP to turn on, off, and adjust brightness.</string>
+    <string name="info_section_routines">Routines</string>
+    <string name="info_section_routines_text">Schedule on/off times for each bulb. When your phone connects to WiFi, the app executes actions automatically.</string>
+    <string name="info_section_router">Router configuration</string>
+    <string name="info_section_router_text">Add each bulb\'s IP and MAC as a static IP in your router. This way the bulb keeps the same address and the app never loses connection.</string>
+    <string name="info_section_wifi">Why WiFi 2.4 GHz?</string>
+    <string name="info_section_wifi_text">Sengled W21-N11 bulbs only work on 2.4 GHz networks. Better range and wall penetration than 5 GHz, ideal for IoT devices.</string>
+    <string name="info_section_contact">Have a question or suggestion about this app?</string>
+    <string name="info_section_contact_text">If you have an improvement or new feature in mind, write me at:\n\n<b>fere.espiritu@gmail.com</b>\n\nWe will review if the proposed functionality is viable.\n\nThe app is available on my GitHub repository:\nhttps://github.com/espiritu1/SengledTools</string>
+
+    <string name="info_buttons_title">Buttons</string>
+    <string name="info_btn_refresh">Refresh — Checks the status of your bulbs</string>
+    <string name="info_btn_add">Add — Pair a new bulb to your network</string>
+    <string name="info_btn_delete">Delete — Removes the bulb from the app</string>
+    <string name="info_btn_schedule">Routine — Set on/off schedule for the bulb</string>
+    <string name="info_btn_rename">Rename — Change the bulb\'s name</string>
+    <string name="info_btn_switch">Switch — Turn the bulb on or off</string>
+    <string name="info_btn_brightness">Brightness — Adjust the light intensity</string>
+
+    <string name="info_disclaimer">⚠ This application is NOT affiliated with or official Sengled.\n\nThe Android app was independently developed. The UDP communication protocol is based on documentation from the community project &lt;a href="https://github.com/HamzaETTH/SengledTools"&gt;HamzaETTH/SengledTools&lt;/a&gt; on GitHub, allowing the bulbs to work locally without relying on external servers.</string>
+
+    <string name="lang_toggle">EN</string>
+</resources>

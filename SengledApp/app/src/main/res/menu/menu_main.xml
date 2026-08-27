@@ -9,8 +9,8 @@
         app:showAsAction="always" />
 
     <item
-        android:id="@+id/action_schedule"
-        android:title="@string/action_schedule"
-        app:icon="@drawable/ic_schedule"
+        android:id="@+id/action_add_bulb"
+        android:title=""
+        app:icon="@drawable/ic_add"
         app:showAsAction="always" />
 </menu>

@@ -85,7 +85,7 @@ class RoutineService : Service() {
     private fun tick() {
         val now = System.currentTimeMillis()
         var stagger = 0L
-        for (bulb in BulbRegistry.bulbs) {
+        for (bulb in BulbRegistry.getBulbs(this)) {
             val config = ScheduleManager.getRoutine(this, bulb.id)
             if (!config.enabled) continue
             stagger += fireActionIfDue(bulb, isOn = true, config, now, stagger)
@@ -155,7 +155,7 @@ class RoutineService : Service() {
 
     private fun nextTarget(now: Long): Long? {
         var target = Long.MAX_VALUE
-        for (bulb in BulbRegistry.bulbs) {
+        for (bulb in BulbRegistry.getBulbs(this)) {
             val config = ScheduleManager.getRoutine(this, bulb.id)
             if (!config.enabled) continue
             target = minOf(target, nextOccurrence(config.onMinutes, now))
@@ -241,7 +241,7 @@ class RoutineService : Service() {
     private fun runCatchUp() {
         try {
             val now = System.currentTimeMillis()
-            for (bulb in BulbRegistry.bulbs) {
+            for (bulb in BulbRegistry.getBulbs(this)) {
                 try {
                     val config = ScheduleManager.getRoutine(this, bulb.id)
                     if (!config.enabled) continue

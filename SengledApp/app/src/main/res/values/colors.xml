@@ -12,4 +12,9 @@
 
     <color name="status_online">#4CAF50</color>
     <color name="status_offline">#FF5252</color>
+
+    <color name="icon_green">#4CAF50</color>
+    <color name="icon_red">#FF5252</color>
+    <color name="icon_blue">#42A5F5</color>
+    <color name="icon_purple">#BB86FC</color>
 </resources>

@@ -6,15 +6,49 @@
     android:background="@color/background_dark"
     android:orientation="vertical">
 
-    <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/toolbar"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         android:background="@color/background_dark"
-        app:itemIconTint="@color/text_primary"
-        app:itemTextColor="@color/text_primary"
-        app:title="@string/app_name"
-        app:titleTextColor="@color/text_primary" />
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="8dp">
+
+        <ImageView
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginEnd="8dp"
+            android:contentDescription="@string/app_name"
+            android:src="@drawable/ic_solaire" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/app_name"
+            android:textColor="@color/text_primary"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <ImageButton
+            android:id="@+id/btnRefresh"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/content_desc_refresh"
+            android:src="@drawable/ic_refresh"
+            android:tint="@color/text_primary" />
+
+        <ImageButton
+            android:id="@+id/btnAddBulb"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/pairing_title"
+            android:src="@drawable/ic_add"
+            android:tint="@color/icon_green" />
+    </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerBulbs"
@@ -25,6 +59,43 @@
         android:paddingLeft="16dp"
         android:paddingTop="8dp"
         android:paddingRight="16dp"
-        android:paddingBottom="24dp" />
+        android:paddingBottom="8dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="12dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnInfo"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/info_button"
+            android:textColor="@color/icon_purple"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/txtVersion"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnLang"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/lang_toggle"
+            android:textColor="@color/icon_purple"
+            android:textSize="12sp" />
+    </LinearLayout>
 
 </LinearLayout>
