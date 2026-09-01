@@ -14,7 +14,12 @@
     <string name="rename_save">Guardar</string>
     <string name="rename_cancel">Cancelar</string>
 
+    <string name="edit_ip_title">Editar IP del foco</string>
+    <string name="edit_ip_save">Guardar IP</string>
+    <string name="edit_ip_hint">La IP del foco \'%1$s\' es: %2$s.\n\nSi la IP cambió (el router la asigna automáticamente), poné la nueva IP que veas en el router para que la app siga encontrando el foco.</string>
+
     <string name="content_desc_rename">Renombrar foco</string>
+    <string name="content_desc_edit_ip">Editar IP del foco</string>
     <string name="content_desc_refresh">Actualizar estado de los focos</string>
     <string name="content_desc_schedule">Configurar horario</string>
 
@@ -56,10 +61,17 @@
     <string name="pairing_step1_desc">Ingresá el nombre y la contraseña de tu red WiFi de 2.4 GHz.</string>
     <string name="pairing_hint_ssid">Nombre de la red (SSID)</string>
     <string name="pairing_hint_password">Contraseña</string>
+    <string name="pairing_detect">Detectar</string>
+    <string name="pairing_detect_title">Redes disponibles</string>
+    <string name="pairing_detect_empty">No se encontraron redes. Tocá refrescar e intentá de nuevo.</string>
+    <string name="pairing_detect_refresh">Refrescar</string>
 
     <string name="pairing_step2_title">Conectate al foco</string>
     <string name="pairing_step2_desc">Andá a Configuración WiFi de tu celular y conectate a la red del foco.</string>
-    <string name="pairing_reset_instructions">Para activar el modo pairing del foco:\n\n1. Prendé el foco\n2. Hacé flick 5 veces rápidas (prender/apagar)\n3. El foco va a empezar a parpadear\n4. Buscá la red \"Sengled_Wi-Fi Bulb_XXXX\" en tu WiFi</string>
+    <string name="pairing_reset_instructions">Para activar el modo pairing del foco:\n\n1. Prendé el foco\n2. Hacé flick 10 veces rápidas (prender/apagar)\n3. El foco va a empezar a parpadear (confirmación del modo pairing)\n4. Buscá la red \"Sengled_Wi-Fi Bulb_XXXX\" en tu WiFi\n\nSi no parpadea, repetí hasta que lo haga.</string>
+<string name="pairing_retrying">Reintentando conexión con el foco.</string>
+<string name="pairing_retry_attempt">Intento %1$d de %2$d…</string>
+<string name="pairing_handshake_failed">No se pudo conectar con el foco luego de %1$d intentos.\nAsegurate de que el foco esté en modo pairing (parpadeando) y reintentá.</string>
     <string name="pairing_waiting_ap">Esperando que te conectes al AP del foco…</string>
     <string name="pairing_ap_detected">¡Foco detectado! IP: 192.168.8.1</string>
 
@@ -69,6 +81,11 @@
     <string name="pairing_waiting_verification">Esperando que el foco se conecte a tu red…</string>
     <string name="pairing_verification_success">¡Foco conectado a tu red!</string>
     <string name="pairing_verification_failed">No se pudo verificar la conexión del foco.</string>
+    <string name="pairing_switch_network">Conectá tu celular a tu red WiFi</string>
+    <string name="pairing_switch_network_hint">Conectá el celular a la red \"%1$s\" para que la app encuentre el foco.\n\nPodés cambiarlo desde la Configuración WiFi del celular.</string>
+    <string name="pairing_no_network_switch">No detectamos que tu celular se conectó a tu red WiFi.\n\nReintentá y asegurate de conectar el celular a \"%1$s\".</string>
+    <string name="pairing_searching_bulb">Buscando el foco en tu red…</string>
+    <string name="pairing_scan_failed_hint">No se pudo encontrar el foco en tu red.\n\nVerificá que el foco esté prendido y conectado a tu WiFi, y que el celular esté en la misma red. Puede tardar unos segundos en aparecer.\n\nSi sigue sin aparecer, desconectá y prendé el foco para que se vuelva a conectar.</string>
     <string name="pairing_error_handshake">Error en el handshake con el foco</string>
     <string name="pairing_error_credentials">El foco rechazó las credenciales</string>
     <string name="pairing_error_scan">No se pudieron escanear las redes</string>
@@ -78,8 +95,9 @@
     <string name="pairing_label_ip">IP del foco</string>
     <string name="pairing_label_mac">Dirección MAC</string>
     <string name="pairing_hint_bulb_name">Nombre del foco</string>
-    <string name="pairing_hint_static_ip">IP estática (para configurar en el router)</string>
-    <string name="pairing_static_ip_hint">Reservá esta IP en tu router para que el foco siempre tenga la misma dirección.</string>
+    <string name="pairing_hint_static_ip">IP del foco (opcional)</string>
+    <string name="pairing_static_ip_hint">Si el foco ya tiene IP, escribila acá. Si la dejás vacía, la app la va a buscar sola usando la MAC cuando el foco esté en tu red.</string>
+    <string name="pairing_no_ip_detected">Se detectará sola al conectarte a tu red</string>
     <string name="pairing_static_ip_suggestion">IP sugerida (agregá una reserva en tu router):</string>
 
     <!-- Delete bulb -->
@@ -89,27 +107,42 @@
     <string name="delete_confirm">Eliminar</string>
     <string name="delete_cancel">Cancelar</string>
 
+    <!-- Add bulb: chooser + manual (IP/MAC) -->
+    <string name="add_bulb_choice_title">Agregar foco</string>
+    <string name="add_bulb_choice_pair">Emparejar foco nuevo (wizard)</string>
+    <string name="add_bulb_choice_manual">Agregar foco ya conectado (IP / MAC)</string>
+    <string name="add_manual_title">Agregar foco ya conectado</string>
+    <string name="add_manual_hint">Usá esta opción cuando el foco YA está conectado a tu WiFi, pero no apareció solo en la lista. Puede pasar si:\n\n• La card no se agregó automáticamente al emparejarlo.\n• Querés usar la app desde OTRO teléfono y el foco ya está en tu red.\n\nIngresá la IP del foco (la ves en tu router). Si también ponés la MAC, la app puede re-encontrar el foco sola cuando la IP cambie.</string>
+    <string name="add_manual_hint_name">Nombre del foco</string>
+    <string name="add_manual_hint_ip">IP del foco</string>
+    <string name="add_manual_hint_mac">MAC (opcional)</string>
+    <string name="add_manual_save">Agregar</string>
+    <string name="add_manual_error_name">Ingresá un nombre</string>
+    <string name="add_manual_error_ip">Ingresá la IP del foco</string>
+    <string name="add_manual_success">¡Foco \'%1$s\' agregado!</string>
+
     <string name="info_button">Info</string>
     <string name="info_title_dialog">Acerca de Focos Sengled</string>
     <string name="info_section_how">¿Cómo funciona?</string>
     <string name="info_section_how_text">Controla tus focos Sengled W21-N11 directamente por la red local (WiFi), sin servidores externos. Se comunica por UDP para encender, apagar y ajustar el brillo.</string>
     <string name="info_section_routines">Rutinas</string>
-    <string name="info_section_routines_text">Programá horarios de encendido y apagado para cada foco. Cuando tu celular se conecta al WiFi, la app ejecuta las acciones automáticamente.</string>
+    <string name="info_section_routines_text">Programá horarios de encendido y apagado para cada foco. Cuando tu celular se conecta al WiFi, la app ejecuta las acciones automáticamente.\n\n<b>Importante:</b> para que las rutinas funcionen, la app debe mantenerse viva en segundo plano. Asegurate de desactivar la optimización de batería para esta app y permitir que se ejecute en segundo plano; de lo contrario el sistema puede cerrarla y las rutinas no se ejecutarán. También es necesario tener habilitadas las notificaciones.</string>
     <string name="info_section_router">Configuración del router</string>
     <string name="info_section_router_text">Agregá la IP y la MAC de cada foco como IP estática en tu router. Así el foco siempre mantiene la misma dirección y la app nunca pierde la conexión.</string>
     <string name="info_section_wifi">¿Por qué WiFi 2.4 GHz?</string>
-    <string name="info_section_wifi_text">Los focos Sengled W21-N11 solo funcionan en redes de 2.4 GHz. Tiene mejor alcance y penetración de paredes que 5 GHz, ideal para dispositivos IoT.</string>
+    <string name="info_section_wifi_text">Los focos Sengled W21-N11 solo funcionan en redes de 2.4 GHz.</string>
     <string name="info_section_contact">¿Tienes alguna duda o sugerencia sobre esta app?</string>
     <string name="info_section_contact_text">Si tienes una mejora o nueva funcionalidad en mente, escríbeme a:\n\n<b>fere.espiritu@gmail.com</b>\n\nRevisaremos si la funcionalidad que propones es viable.\n\nLa app está disponible en mi repositorio de GitHub:\nhttps://github.com/espiritu1/sengled-local-control</string>
 
     <string name="info_buttons_title">Botones</string>
     <string name="info_btn_refresh">Actualizar — Verifica el estado de los focos</string>
-    <string name="info_btn_add">Agregar — Pareá un nuevo foco a tu red</string>
+    <string name="info_btn_add">Agregar — Emparejá un foco nuevo o agregalo por IP/MAC</string>
     <string name="info_btn_delete">Eliminar — Borra el foco de la app</string>
     <string name="info_btn_schedule">Rutina — Configurá horario de encendido/apagado</string>
     <string name="info_btn_rename">Renombrar — Cambiá el nombre del foco</string>
     <string name="info_btn_switch">Interruptor — Prendé o apagá el foco</string>
     <string name="info_btn_brightness">Brillo — Ajustá la intensidad de la luz</string>
+    <string name="info_btn_reorder">Reordenar — Mantené presionada una tarjeta y movela hacia arriba o abajo para cambiar el orden de los focos</string>
 
     <string name="info_disclaimer">⚠ Esta aplicación NO está afiliada ni es oficial de Sengled.\n\nLa app Android fue desarrollada de forma independiente. El protocolo de comunicación UDP se basa en la documentación del proyecto comunitario &lt;a href="https://github.com/HamzaETTH/SengledTools"&gt;HamzaETTH/SengledTools&lt;/a&gt; en GitHub, permitiendo que los focos funcionen de forma local sin depender de servidores externos.</string>
 

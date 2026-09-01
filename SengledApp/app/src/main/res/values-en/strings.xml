@@ -14,7 +14,12 @@
     <string name="rename_save">Save</string>
     <string name="rename_cancel">Cancel</string>
 
+    <string name="edit_ip_title">Edit bulb IP</string>
+    <string name="edit_ip_save">Save IP</string>
+    <string name="edit_ip_hint">The bulb \'%1$s\' IP is: %2$s.\n\nIf the IP changed (the router assigns it automatically), enter the new IP you see in the router so the app keeps finding the bulb.</string>
+
     <string name="content_desc_rename">Rename bulb</string>
+    <string name="content_desc_edit_ip">Edit bulb IP</string>
     <string name="content_desc_refresh">Refresh bulb status</string>
     <string name="content_desc_schedule">Set schedule</string>
 
@@ -56,10 +61,17 @@
     <string name="pairing_step1_desc">Enter the name and password of your 2.4 GHz WiFi network.</string>
     <string name="pairing_hint_ssid">Network name (SSID)</string>
     <string name="pairing_hint_password">Password</string>
+    <string name="pairing_detect">Detect</string>
+    <string name="pairing_detect_title">Available networks</string>
+    <string name="pairing_detect_empty">No networks found. Tap refresh and try again.</string>
+    <string name="pairing_detect_refresh">Refresh</string>
 
     <string name="pairing_step2_title">Connect to the bulb</string>
     <string name="pairing_step2_desc">Go to your phone\'s WiFi settings and connect to the bulb\'s network.</string>
-    <string name="pairing_reset_instructions">To activate pairing mode on the bulb:\n\n1. Turn on the bulb\n2. Flick the switch 5 times quickly (on/off)\n3. The bulb will start blinking\n4. Look for the \"Sengled_Wi-Fi Bulb_XXXX\" network in your WiFi</string>
+    <string name="pairing_reset_instructions">To activate pairing mode on the bulb:\n\n1. Turn on the bulb\n2. Flick the switch 10 times quickly (on/off)\n3. The bulb will start blinking (pairing mode confirmation)\n4. Look for the \"Sengled_Wi-Fi Bulb_XXXX\" network in your WiFi\n\nIf it does not blink, repeat until it does.</string>
+<string name="pairing_retrying">Retrying connection to the bulb.</string>
+<string name="pairing_retry_attempt">Attempt %1$d of %2$d…</string>
+<string name="pairing_handshake_failed">Could not connect to the bulb after %1$d attempts.\nMake sure the bulb is in pairing mode (blinking) and try again.</string>
     <string name="pairing_waiting_ap">Waiting for you to connect to the bulb\'s AP…</string>
     <string name="pairing_ap_detected">Bulb detected! IP: 192.168.8.1</string>
 
@@ -69,6 +81,11 @@
     <string name="pairing_waiting_verification">Waiting for the bulb to connect to your network…</string>
     <string name="pairing_verification_success">Bulb connected to your network!</string>
     <string name="pairing_verification_failed">Could not verify bulb connection.</string>
+    <string name="pairing_switch_network">Connect your phone to your WiFi network</string>
+    <string name="pairing_switch_network_hint">Connect the phone to \"%1$s\" so the app can find the bulb.\n\nYou can change it from the phone\'s WiFi settings.</string>
+    <string name="pairing_no_network_switch">We could not detect that the phone connected to your WiFi network.\n\nTry again and make sure the phone connects to \"%1$s\".</string>
+    <string name="pairing_searching_bulb">Searching for the bulb on your network…</string>
+    <string name="pairing_scan_failed_hint">Could not find the bulb on your network.\n\nMake sure the bulb is on and connected to your WiFi, and that the phone is on the same network. It may take a few seconds to appear.\n\nIf it still does not appear, unplug and turn the bulb on again so it reconnects.</string>
     <string name="pairing_error_handshake">Error in handshake with bulb</string>
     <string name="pairing_error_credentials">Bulb rejected the credentials</string>
     <string name="pairing_error_scan">Could not scan networks</string>
@@ -78,8 +95,9 @@
     <string name="pairing_label_ip">Bulb IP</string>
     <string name="pairing_label_mac">MAC address</string>
     <string name="pairing_hint_bulb_name">Bulb name</string>
-    <string name="pairing_hint_static_ip">Static IP (to configure in router)</string>
-    <string name="pairing_static_ip_hint">Reserve this IP in your router so the bulb always has the same address.</string>
+    <string name="pairing_hint_static_ip">Bulb IP (optional)</string>
+    <string name="pairing_static_ip_hint">If the bulb already has an IP, type it here. Leave it empty and the app will find it by itself using the MAC when the bulb is on your network.</string>
+    <string name="pairing_no_ip_detected">Will be found automatically on your network</string>
     <string name="pairing_static_ip_suggestion">Suggested IP (add a reservation in your router):</string>
 
     <!-- Delete bulb -->
@@ -89,27 +107,42 @@
     <string name="delete_confirm">Delete</string>
     <string name="delete_cancel">Cancel</string>
 
+    <!-- Add bulb: chooser + manual (IP/MAC) -->
+    <string name="add_bulb_choice_title">Add bulb</string>
+    <string name="add_bulb_choice_pair">Pair a new bulb (wizard)</string>
+    <string name="add_bulb_choice_manual">Add an already-connected bulb (IP / MAC)</string>
+    <string name="add_manual_title">Add an already-connected bulb</string>
+    <string name="add_manual_hint">Use this when the bulb is ALREADY on your WiFi but didn\'t show up on its own. This can happen if:\n\n• The card wasn\'t added automatically when you paired it.\n• You want to use the app from ANOTHER phone and the bulb is already on your network.\n\nEnter the bulb IP (you can see it in your router). If you also enter the MAC, the app can find the bulb by itself again when the IP changes.</string>
+    <string name="add_manual_hint_name">Bulb name</string>
+    <string name="add_manual_hint_ip">Bulb IP</string>
+    <string name="add_manual_hint_mac">MAC (optional)</string>
+    <string name="add_manual_save">Add</string>
+    <string name="add_manual_error_name">Enter a name</string>
+    <string name="add_manual_error_ip">Enter the bulb IP</string>
+    <string name="add_manual_success">Bulb \'%1$s\' added!</string>
+
     <string name="info_button">Info</string>
     <string name="info_title_dialog">About Sengled Lights</string>
     <string name="info_section_how">How does it work?</string>
     <string name="info_section_how_text">Controls your Sengled W21-N11 bulbs directly over your local network (WiFi), no external servers needed. Communicates via UDP to turn on, off, and adjust brightness.</string>
     <string name="info_section_routines">Routines</string>
-    <string name="info_section_routines_text">Schedule on/off times for each bulb. When your phone connects to WiFi, the app executes actions automatically.</string>
+    <string name="info_section_routines_text">Schedule on/off times for each bulb. When your phone connects to WiFi, the app executes actions automatically.\n\n<b>Important:</b> for routines to work, the app must stay alive in the background. Make sure to disable battery optimization for this app and allow background execution; otherwise the system may close it and routines will not run. Notifications must also be enabled.</string>
     <string name="info_section_router">Router configuration</string>
     <string name="info_section_router_text">Add each bulb\'s IP and MAC as a static IP in your router. This way the bulb keeps the same address and the app never loses connection.</string>
     <string name="info_section_wifi">Why WiFi 2.4 GHz?</string>
-    <string name="info_section_wifi_text">Sengled W21-N11 bulbs only work on 2.4 GHz networks. Better range and wall penetration than 5 GHz, ideal for IoT devices.</string>
+    <string name="info_section_wifi_text">Sengled W21-N11 bulbs only work on 2.4 GHz networks.</string>
     <string name="info_section_contact">Have a question or suggestion about this app?</string>
     <string name="info_section_contact_text">If you have an improvement or new feature in mind, write me at:\n\n<b>fere.espiritu@gmail.com</b>\n\nWe will review if the proposed functionality is viable.\n\nThe app is available on my GitHub repository:\nhttps://github.com/espiritu1/sengled-local-control</string>
 
     <string name="info_buttons_title">Buttons</string>
     <string name="info_btn_refresh">Refresh — Checks the status of your bulbs</string>
-    <string name="info_btn_add">Add — Pair a new bulb to your network</string>
+    <string name="info_btn_add">Add — Pair a new bulb or add it by IP/MAC</string>
     <string name="info_btn_delete">Delete — Removes the bulb from the app</string>
     <string name="info_btn_schedule">Routine — Set on/off schedule for the bulb</string>
     <string name="info_btn_rename">Rename — Change the bulb\'s name</string>
     <string name="info_btn_switch">Switch — Turn the bulb on or off</string>
     <string name="info_btn_brightness">Brightness — Adjust the light intensity</string>
+    <string name="info_btn_reorder">Reorder — Press and hold a card, then drag it up or down to change the bulb order</string>
 
     <string name="info_disclaimer">⚠ This application is NOT affiliated with or official Sengled.\n\nThe Android app was independently developed. The UDP communication protocol is based on documentation from the community project &lt;a href="https://github.com/HamzaETTH/SengledTools"&gt;HamzaETTH/SengledTools&lt;/a&gt; on GitHub, allowing the bulbs to work locally without relying on external servers.</string>
 
