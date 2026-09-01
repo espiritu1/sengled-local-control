@@ -21,6 +21,7 @@ class BulbAdapter(
         fun onSwitchChanged(bulb: Bulb, isOn: Boolean)
         fun onBrightnessChanged(bulb: Bulb, value: Int)
         fun onRename(bulb: Bulb, newName: String)
+        fun onEditIp(bulb: Bulb, newIp: String)
         fun onEditSchedule(bulb: Bulb)
         fun onDeleteBulb(bulb: Bulb)
     }
@@ -34,6 +35,9 @@ class BulbAdapter(
     private val handler = Handler(Looper.getMainLooper())
     private val pendingBrightness = HashMap<String, Runnable>()
     private var updating = false
+
+    /** Set by the host to start a drag for a given holder (long-press). */
+    var onStartDrag: ((RecyclerView.ViewHolder) -> Unit)? = null
 
     inner class BulbHolder(val binding: ItemBulbBinding) : RecyclerView.ViewHolder(binding.root)
 
@@ -106,7 +110,14 @@ class BulbAdapter(
 
         b.btnSchedule.setOnClickListener { listener.onEditSchedule(bulb) }
         b.btnRename.setOnClickListener { showRenameDialog(context, bulb) }
+        b.btnEditIp.setOnClickListener { showEditIpDialog(context, bulb) }
         b.btnDelete.setOnClickListener { listener.onDeleteBulb(bulb) }
+
+        // Long-press the card body to drag & reorder
+        holder.binding.root.setOnLongClickListener {
+            onStartDrag?.invoke(holder)
+            true
+        }
     }
 
     private fun showRenameDialog(context: Context, bulb: Bulb) {
@@ -129,10 +140,56 @@ class BulbAdapter(
             .show()
     }
 
+    private fun showEditIpDialog(context: Context, bulb: Bulb) {
+        val input = EditText(context).apply {
+            setText(bulb.ip)
+            inputType = android.text.InputType.TYPE_CLASS_PHONE
+            setSelection(text.length)
+        }
+
+        AlertDialog.Builder(context)
+            .setTitle(R.string.edit_ip_title)
+            .setMessage(context.getString(R.string.edit_ip_hint, bulb.name, bulb.ip))
+            .setView(input)
+            .setPositiveButton(R.string.edit_ip_save) { _, _ ->
+                val ip = input.text.toString().trim()
+                if (ip.isNotEmpty()) {
+                    listener.onEditIp(bulb, ip)
+                }
+            }
+            .setNegativeButton(R.string.rename_cancel, null)
+            .show()
+    }
+
     fun updateBulb(updated: Bulb) {
         val index = bulbs.indexOfFirst { it.id == updated.id }
         if (index < 0) return
         bulbs[index] = updated
         notifyItemChanged(index)
     }
+
+    fun addBulb(bulb: Bulb) {
+        if (bulbs.any { it.id == bulb.id }) return
+        bulbs.add(bulb)
+        notifyItemInserted(bulbs.size - 1)
+    }
+
+    fun removeBulb(bulbId: String) {
+        val index = bulbs.indexOfFirst { it.id == bulbId }
+        if (index < 0) return
+        bulbs.removeAt(index)
+        notifyItemRemoved(index)
+    }
+
+    /** Move an item within the list (for drag & drop). */
+    fun onItemMove(fromPosition: Int, toPosition: Int) {
+        if (fromPosition in bulbs.indices && toPosition in bulbs.indices) {
+            val moved = bulbs.removeAt(fromPosition)
+            bulbs.add(toPosition, moved)
+            notifyItemMoved(fromPosition, toPosition)
+        }
+    }
+
+    /** Current order of bulb ids (used to persist after a drag ends). */
+    fun orderIds(): List<String> = bulbs.map { it.id }
 }

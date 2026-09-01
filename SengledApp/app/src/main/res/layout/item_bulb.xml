@@ -37,31 +37,53 @@
                 tools:text="Lampara de sala" />
 
             <ImageButton
+                android:id="@+id/btnRename"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/content_desc_rename"
+                android:src="@drawable/ic_edit"
+                android:tint="@color/icon_blue" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageButton
                 android:id="@+id/btnDelete"
-                android:layout_width="60dp"
-                android:layout_height="60dp"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/content_desc_delete"
                 android:src="@drawable/ic_delete"
                 android:tint="@color/icon_red" />
 
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
             <ImageButton
                 android:id="@+id/btnSchedule"
-                android:layout_width="60dp"
-                android:layout_height="60dp"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/content_desc_schedule"
                 android:src="@drawable/ic_schedule"
                 android:tint="@color/text_secondary" />
 
             <ImageButton
-                android:id="@+id/btnRename"
-                android:layout_width="60dp"
-                android:layout_height="60dp"
+                android:id="@+id/btnEditIp"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/content_desc_rename"
-                android:src="@drawable/ic_edit"
-                android:tint="@color/icon_blue" />
+                android:contentDescription="@string/content_desc_edit_ip"
+                android:src="@drawable/ic_settings"
+                android:tint="@color/icon_green" />
         </LinearLayout>
 
         <LinearLayout
