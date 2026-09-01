@@ -208,35 +208,17 @@ class RoutineService : Service() {
     }
 
     /**
-     * Expected state per strict routine: the state set by the most recent passed
-     * action. Candidates are today/yesterday on/off occurrences; the one with the
-     * latest timestamp <= now decides. Defaults to OFF when nothing passed.
-     */
-    private fun expectedState(config: ScheduleManager.RoutineConfig, nowMs: Long): Boolean {
-        val todayOn = occurrenceToday(config.onMinutes)
-        val todayOff = occurrenceToday(config.offMinutes)
-        val candidates = listOf(
-            Candidate(todayOn, true),
-            Candidate(todayOff, false),
-            Candidate(todayOn - DAY_MILLIS, true),
-            Candidate(todayOff - DAY_MILLIS, false)
-        )
-        return candidates
-            .filter { it.time <= nowMs }
-            .maxByOrNull { it.time }
-            ?.isOn
-            ?: false
-    }
-
-    private data class Candidate(val time: Long, val isOn: Boolean)
-
-    /**
-     * Silent reconciliation after a network return: for each enabled bulb, force
-     * the strict expected state with an idempotent command (ON always re-sends
-     * brightness + switch; OFF re-sends switch off). No state query is used
-     * because a powered-off bulb keeps reporting its last brightness for a long
-     * time, making the query unreliable. Never touches last-fired markers and
-     * never notifies.
+     * Silent reconciliation after a network return. Recovers schedule on/off
+     * transitions that the tick could not fire while the network was down, using
+     * the exact same `last_fired` guards as the tick so an action already applied
+     * is never re-sent. It deliberately does NOT force the strict current state of
+     * the schedule onto a bulb: re-applying "expected on" to a bulb the user
+     * turned on by hand (or re-applying "expected off" after midnight) was what
+     * fought the user and produced the occasional "blinks off then back on"
+     * flicker — most visibly on the sala, whose schedule keeps it "expected on"
+     * for many hours, whenever the network reconnected (Wi-Fi handover, doze
+     * exit, band switch). No state query is used (a powered-off bulb keeps
+     * reporting its last brightness) and no notification is posted.
      */
     private fun runCatchUp() {
         try {
@@ -245,21 +227,41 @@ class RoutineService : Service() {
                 try {
                     val config = ScheduleManager.getRoutine(this, bulb.id)
                     if (!config.enabled) continue
-                    if (expectedState(config, now)) {
-                        val brightness = config.brightness.coerceIn(1, 100)
-                        UdpClient().use {
-                            it.setBrightness(bulb.ip, brightness)
-                            it.setSwitch(bulb.ip, true)
-                        }
-                    } else {
-                        UdpClient().use { it.setSwitch(bulb.ip, false) }
-                    }
+                    recoverTransitions(bulb, config, now)
                 } catch (_: Exception) {
                     Log.d("SengledRoutine", "Catch-up failed for ${bulb.name}")
                 }
             }
         } catch (_: Exception) {
             Log.d("SengledRoutine", "Catch-up aborted")
+        }
+    }
+
+    /**
+     * Applies a missed on/off transition for [bulb] when its scheduled occurrence
+     * has passed and the previous tick never fired it (tracked via `last_fired`).
+     * Because it shares those guards with the tick, running this on every network
+     * reconnect is idempotent: a transition already applied is skipped, so a bulb
+     * the user set by hand is left alone.
+     */
+    private fun recoverTransitions(bulb: Bulb, config: ScheduleManager.RoutineConfig, now: Long) {
+        for (isOn in listOf(true, false)) {
+            val minutes = if (isOn) config.onMinutes else config.offMinutes
+            val occurrence = occurrenceToday(minutes)
+            if (occurrence > now + GRACE_FORWARD_MS) continue
+            val epochMinute = occurrence / 60_000L
+            if (ScheduleManager.getLastFired(this, bulb.id, isOn) == epochMinute) continue
+
+            ScheduleManager.setLastFired(this, bulb.id, isOn, epochMinute)
+            UdpClient().use {
+                if (isOn) {
+                    val brightness = config.brightness.coerceIn(1, 100)
+                    it.setBrightness(bulb.ip, brightness)
+                    it.setSwitch(bulb.ip, true)
+                } else {
+                    it.setSwitch(bulb.ip, false)
+                }
+            }
         }
     }
 
