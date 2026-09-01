@@ -1,5 +1,8 @@
 package com.sengled.control
 
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.wifi.WifiManager
 import org.json.JSONObject
 import java.net.DatagramPacket
 import java.net.DatagramSocket
@@ -22,7 +25,7 @@ object PairingProtocol {
 
     // ── Step 1: Initial handshake ──────────────────────────────────────
 
-    fun handshake(socket: DatagramSocket): HandshakeResult? {
+    fun handshake(socket: DatagramSocket, fallbackMac: String? = null): HandshakeResult? {
         val req = JSONObject()
             .put("name", "startConfigRequest")
             .put("totalStep", 1)
@@ -30,8 +33,16 @@ object PairingProtocol {
             .put("payload", JSONObject().put("protocol", 1))
 
         val resp = sendAndReceive(socket, req) ?: return null
-        val mac = resp.optJSONObject("payload")?.optString("mac", "") ?: ""
-        if (mac.isEmpty() || mac.length != 17) return null
+        var mac = resp.optJSONObject("payload")?.optString("mac", "") ?: ""
+        if (mac.length != 17) {
+            // Some bulblets don't return the MAC in the handshake response (only
+            // `result:true`). Fall back to the BSSID of the Wi-Fi network we're
+            // connected to — that IS the bulb's MAC when we're on its AP.
+            mac = fallbackMac?.replace(":", "")?.replace("-", "")?.uppercase() ?: ""
+            if (mac.isEmpty()) return null
+            // Normalize to XX:XX:XX:XX:XX:XX
+            mac = mac.chunked(2).joinToString(":")
+        }
         return HandshakeResult(mac, resp)
     }
 
@@ -148,6 +159,10 @@ object PairingProtocol {
 
     // ── Low-level UDP transport ────────────────────────────────────────
 
+    /** Last transport failure reason (diagnostics). */
+    @Volatile
+    var lastTransportError: String? = null
+
     private fun sendAndReceive(socket: DatagramSocket, payload: JSONObject): JSONObject? {
         val text = payload.toString()
         val response = sendRawAndReceive(socket, text) ?: return null
@@ -159,17 +174,51 @@ object PairingProtocol {
     }
 
     private fun sendRawAndReceive(socket: DatagramSocket, text: String): String? {
-        return try {
+        try {
             val data = text.toByteArray(Charsets.UTF_8)
             socket.send(DatagramPacket(data, data.size, InetAddress.getByName(BULB_AP_IP), BULB_PORT))
+            android.util.Log.d("SengledPair", "UDP sent to $BULB_AP_IP:$BULB_PORT")
 
             val buffer = ByteArray(4096)
             val packet = DatagramPacket(buffer, buffer.size)
             socket.soTimeout = TIMEOUT_MS
             socket.receive(packet)
-            String(buffer, 0, packet.length, Charsets.UTF_8)
-        } catch (_: Exception) {
-            null
+            val resp = String(buffer, 0, packet.length, Charsets.UTF_8)
+            android.util.Log.d("SengledPair", "UDP recv: $resp")
+            return resp
+        } catch (e: java.net.SocketTimeoutException) {
+            lastTransportError = "timeout"
+            android.util.Log.w("SengledPair", "UDP timeout waiting for bulb")
+            return null
+        } catch (e: java.net.ConnectException) {
+            lastTransportError = "connect: ${e.message}"
+            android.util.Log.w("SengledPair", "UDP connect failed: ${e.message}")
+            return null
+        } catch (e: java.net.PortUnreachableException) {
+            lastTransportError = "port_unreachable: ${e.message}"
+            android.util.Log.w("SengledPair", "UDP port unreachable: ${e.message}")
+            return null
+        } catch (e: Exception) {
+            lastTransportError = "${e.javaClass.simpleName}: ${e.message}"
+            android.util.Log.w("SengledPair", "UDP error: ${e.javaClass.simpleName} -> ${e.message}")
+            return null
         }
+    }
+
+    /** Logs the phone's current network binding state (diagnostics). */
+    fun logNetworkState(context: Context, tag: String = "SengledPair") {
+        try {
+            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+            val wifi = context.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+            val ip = WifiDetector.getPhoneIp(context)
+            val active = cm?.activeNetwork
+            val caps = active?.let { cm.getNetworkCapabilities(it) }
+            android.util.Log.d(tag, "WifiIP=$ip activeNetwork=$active caps=$caps")
+            cm?.allNetworks?.forEach { n ->
+                val lp = cm.getLinkProperties(n)
+                val ips = lp?.linkAddresses?.map { it?.address?.hostAddress } ?: emptyList()
+                android.util.Log.d(tag, "  network=$n ips=$ips")
+            }
+        } catch (_: Exception) {}
     }
 }

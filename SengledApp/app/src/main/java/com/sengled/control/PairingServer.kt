@@ -39,6 +39,14 @@ class PairingServer(
     @Volatile var hitBimqtt = false
         private set
 
+    /**
+     * The MQTT broker host IP the bulb should connect to.
+     * Must be set to the phone's LAN IP BEFORE starting pairing.
+     * The bulb cannot reach 127.0.0.1 (that's the bulb itself).
+     */
+    @Volatile var brokerHost: String = "127.0.0.1"
+    @Volatile var brokerPort: Int = 8883
+
     val bothEndpointsHit: Boolean
         get() = hitAccessCloud && hitBimqtt
 
@@ -120,12 +128,12 @@ class PairingServer(
                     if (method in listOf("GET", "POST")) {
                         hitBimqtt = true
                         bulbIp = clientIp
-                        Log.d(TAG, "Hit /jbalancer/new/bimqtt from $clientIp")
+                        Log.d(TAG, "Hit /jbalancer/new/bimqtt from $clientIp — broker=$brokerHost:$brokerPort")
                     }
                     sendJson(socket, JSONObject()
                         .put("protocal", "mqtt")
-                        .put("host", "127.0.0.1")
-                        .put("port", 8883)
+                        .put("host", brokerHost)
+                        .put("port", brokerPort)
                     )
                 }
                 else -> {

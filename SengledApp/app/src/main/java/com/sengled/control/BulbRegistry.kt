@@ -6,50 +6,20 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /**
- * Single source of truth for bulb hardware (id, default name, IP, MAC).
+ * Single source of truth for bulb hardware (id, name, IP, MAC).
  *
- * The hardcoded defaults are kept for backward compatibility. Newly paired
- * bulbs are persisted in SharedPreferences and merged at load time.
+ * Bulbs live only in SharedPreferences — there are no hardcoded defaults.
+ * Newly paired bulbs are persisted and loaded at runtime.
  */
 object BulbRegistry {
 
     private const val PREFS_NAME = "sengled_bulbs"
     private const val KEY_BULBS = "bulbs_json"
-    private const val KEY_REMOVED_IDS = "removed_ids"
-
-    // ── Hardcoded defaults (backward compat) ───────────────────────────
-
-    private val defaultBulbs = listOf(
-        Bulb("sala", "Lampara de sala", "192.168.68.150"),
-        Bulb("blanca", "Luz blanca", "192.168.68.118")
-    )
 
     // ── Public API ─────────────────────────────────────────────────────
 
-    /** Load all bulbs: hardcoded defaults + any paired bulbs from prefs. */
-    fun getBulbs(context: Context): List<Bulb> {
-        val paired = loadPaired(context)
-        val removedIds = loadRemovedIds(context)
-        // Merge: paired bulbs override defaults with same id, extras are appended
-        val result = mutableListOf<Bulb>()
-        val pairedIds = paired.map { it.id }.toSet()
-
-        for (b in defaultBulbs) {
-            if (b.id in removedIds) continue
-            val override = paired.firstOrNull { it.id == b.id }
-            result.add(override ?: b)
-        }
-        // Add paired bulbs that don't overlap with defaults
-        for (b in paired) {
-            if (b.id in removedIds) continue
-            if (b.id !in pairedIds || defaultBulbs.none { it.id == b.id }) {
-                if (result.none { it.id == b.id }) {
-                    result.add(b)
-                }
-            }
-        }
-        return result
-    }
+    /** Load all bulbs from prefs. */
+    fun getBulbs(context: Context): List<Bulb> = loadPaired(context)
 
     /** Save a newly paired bulb. */
     fun addBulb(context: Context, bulb: Bulb, mac: String = "") {
@@ -60,16 +30,41 @@ object BulbRegistry {
         } else {
             paired.add(bulb)
         }
-        savePaired(context, paired, mac)
+        savePaired(context, paired, bulb.id, mac)
     }
 
-    /** Remove a bulb by id. Removes from paired list and marks defaults as removed. */
+    /** Update the IP of an existing bulb (paired only). */
+    fun updateBulbIp(context: Context, bulbId: String, newIp: String) {
+        val paired = loadPaired(context).toMutableList()
+        val idx = paired.indexOfFirst { it.id == bulbId }
+        if (idx < 0) return
+        val b = paired[idx]
+        paired[idx] = b.copy(ip = newIp)
+        savePaired(context, paired)
+    }
+
+    /** Remove a bulb by id. */
     fun removeBulb(context: Context, bulbId: String) {
         val paired = loadPaired(context).toMutableList()
         paired.removeAll { it.id == bulbId }
         savePaired(context, paired)
-        // Also mark as removed so hardcoded defaults don't reappear
-        addRemovedId(context, bulbId)
+    }
+
+    /**
+     * Reorder bulbs by id. Callers pass the full desired order; any id not
+     * present is dropped, any bulb not listed stays at the end (defensive).
+     */
+    fun reorderBulbs(context: Context, orderedIds: List<String>) {
+        val paired = loadPaired(context).toMutableList()
+        val byId = paired.associateBy { it.id }
+        val reordered = mutableListOf<Bulb>()
+        for (id in orderedIds) {
+            byId[id]?.let { reordered.add(it) }
+        }
+        for (b in paired) {
+            if (!orderedIds.contains(b.id)) reordered.add(b)
+        }
+        savePaired(context, reordered)
     }
 
     /** Get MAC for a bulb (only available for paired bulbs). */
@@ -102,7 +97,7 @@ object BulbRegistry {
         }
     }
 
-    private fun savePaired(context: Context, bulbs: List<Bulb>, mac: String = "") {
+    private fun savePaired(context: Context, bulbs: List<Bulb>, macForId: String? = null, mac: String = "") {
         val arr = JSONArray()
         for (b in bulbs) {
             arr.put(JSONObject()
@@ -113,27 +108,9 @@ object BulbRegistry {
         }
         val editor = prefs(context).edit()
         editor.putString(KEY_BULBS, arr.toString())
-        if (mac.isNotEmpty() && bulbs.isNotEmpty()) {
-            editor.putString("mac_${bulbs.last().id}", mac)
+        if (mac.isNotEmpty() && macForId != null) {
+            editor.putString("mac_$macForId", mac)
         }
         editor.apply()
-    }
-
-    private fun loadRemovedIds(context: Context): Set<String> {
-        val json = prefs(context).getString(KEY_REMOVED_IDS, null) ?: return emptySet()
-        return try {
-            val arr = JSONArray(json)
-            (0 until arr.length()).map { arr.getString(it) }.toSet()
-        } catch (_: Exception) {
-            emptySet()
-        }
-    }
-
-    private fun addRemovedId(context: Context, bulbId: String) {
-        val ids = loadRemovedIds(context).toMutableSet()
-        ids.add(bulbId)
-        val arr = JSONArray()
-        for (id in ids) arr.put(id)
-        prefs(context).edit().putString(KEY_REMOVED_IDS, arr.toString()).apply()
     }
 }
