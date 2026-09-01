@@ -81,6 +81,23 @@ object ScheduleManager {
             .apply()
     }
 
+    /**
+     * Last power (on/off) state the user actually set through the app, or null
+     * if never set. This is the only reliable signal we have: the UDP protocol
+     * reports only a latent brightness, never the real on/off state, so we
+     * remember what the user last commanded instead of guessing from the bulb.
+     */
+    fun getLastPower(context: Context, bulbId: String): Boolean? {
+        val p = prefs(context)
+        return if (p.contains("last_power_$bulbId")) p.getBoolean("last_power_$bulbId", false) else null
+    }
+
+    fun setLastPower(context: Context, bulbId: String, on: Boolean) {
+        prefs(context).edit()
+            .putBoolean("last_power_$bulbId", on)
+            .apply()
+    }
+
     /** Epoch minute of the last time this action fired, or -1 if never. */
     fun getLastFired(context: Context, bulbId: String, isOn: Boolean): Long =
         prefs(context).getLong("last_fired_${bulbId}_${if (isOn) "on" else "off"}", -1L)
