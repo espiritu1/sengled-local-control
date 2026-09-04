@@ -5,9 +5,7 @@ import android.content.SharedPreferences
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.text.Html
 import android.text.InputFilter
-import android.text.method.LinkMovementMethod
 import android.provider.Settings
 import android.widget.EditText
 import android.widget.Toast
@@ -67,6 +65,7 @@ class MainActivity : AppCompatActivity(), BulbAdapter.Listener {
         binding.btnAddBulb.setOnClickListener { showAddBulbChooser() }
         binding.btnInfo.setOnClickListener { showInfoDialog() }
         binding.btnLang.setOnClickListener { toggleLanguage() }
+        refreshLanguageButton()
 
         ScheduleManager.startService(this)
 
@@ -372,45 +371,18 @@ class MainActivity : AppCompatActivity(), BulbAdapter.Listener {
         }
     }
 
-    @Suppress("DEPRECATION")
     private fun showInfoDialog() {
-        val purple = "#BB86FC"
-
-        fun section(titleKey: Int, textKey: Int): String {
-            var text = getString(textKey).replace("fere.espiritu@gmail.com",
-                "<a href='mailto:fere.espiritu@gmail.com'><b>fere.espiritu@gmail.com</b></a>")
-            text = text.replace("https://github.com/espiritu1/sengled-local-control",
-                "<a href='https://github.com/espiritu1/sengled-local-control'>https://github.com/espiritu1/sengled-local-control</a>")
-            return "<br><br><font color='$purple' size='18'><b>${getString(titleKey)}</b></font><br><br>$text"
-        }
-
-        val disclaimerHtml = "<br><br><hr><br><font size='12' color='#888888'>" +
-            "⚠ Esta aplicación NO está afiliada ni es oficial de Sengled.<br><br>" +
-            "La app Android fue desarrollada de forma independiente. El protocolo de comunicación UDP se basa en la documentación del proyecto comunitario " +
-            "<a href='https://github.com/HamzaETTH/SengledTools'>HamzaETTH/SengledTools</a> en GitHub, permitiendo que los focos funcionen de forma local sin depender de servidores externos.</font>"
-
-        val infoHtml = section(R.string.info_section_how, R.string.info_section_how_text) +
-            section(R.string.info_section_routines, R.string.info_section_routines_text) +
-            section(R.string.info_section_router, R.string.info_section_router_text) +
-            section(R.string.info_section_wifi, R.string.info_section_wifi_text) +
-            section(R.string.info_section_contact, R.string.info_section_contact_text) +
-            disclaimerHtml
-
-        val textView = android.widget.TextView(this).apply {
-            setText(Html.fromHtml(infoHtml, Html.FROM_HTML_MODE_LEGACY))
-            movementMethod = LinkMovementMethod.getInstance()
-            setPadding(48, 0, 48, 0)
-            setTextColor(getColor(R.color.text_primary))
-            textSize = 14f
-            setLinkTextColor(getColor(R.color.icon_purple))
-        }
+        // Sections = the descriptive text, declared as a static layout so the
+        // content lives entirely in strings.xml (both ES and EN) and autoLink
+        // turns the email/GitHub URLs into tappable links.
+        val sectionsView = layoutInflater.inflate(R.layout.dialog_info_sections, null)
 
         val buttonsView = layoutInflater.inflate(R.layout.dialog_info, null)
 
         val container = android.widget.LinearLayout(this).apply {
             orientation = android.widget.LinearLayout.VERTICAL
             addView(buttonsView)
-            addView(textView)
+            addView(sectionsView)
         }
 
         val scrollView = android.widget.ScrollView(this).apply {
@@ -420,7 +392,7 @@ class MainActivity : AppCompatActivity(), BulbAdapter.Listener {
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.info_title_dialog)
             .setView(scrollView)
-            .setPositiveButton("Cerrar", null)
+            .setPositiveButton(R.string.close, null)
             .show()
     }
 
@@ -437,14 +409,14 @@ class MainActivity : AppCompatActivity(), BulbAdapter.Listener {
         }
         editor.apply()
 
-        val locale = if (newLang != null) Locale("en") else Locale("es")
-        Locale.setDefault(locale)
-        val config = resources.configuration
-        config.setLocale(locale)
-        @Suppress("DEPRECATION")
-        resources.updateConfiguration(config, resources.displayMetrics)
-
         recreate()
+    }
+
+    private fun refreshLanguageButton() {
+        // The button is FIXED to show the CURRENT language (a status indicator,
+        // not the target): "ES" while the app is in Spanish, "EN" while in English.
+        val currentLang = prefs.getString("lang", null)
+        binding.btnLang.text = if (currentLang == "en") "EN" else "ES"
     }
 
     private fun setupDiagnostics() {

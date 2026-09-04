@@ -132,7 +132,9 @@
     <string name="info_section_wifi">Why WiFi 2.4 GHz?</string>
     <string name="info_section_wifi_text">Sengled W21-N11 bulbs only work on 2.4 GHz networks.</string>
     <string name="info_section_contact">Have a question or suggestion about this app?</string>
-    <string name="info_section_contact_text">If you have an improvement or new feature in mind, write me at:\n\n<b>fere.espiritu@gmail.com</b>\n\nWe will review if the proposed functionality is viable.\n\nThe app is available on my GitHub repository:\nhttps://github.com/espiritu1/sengled-local-control</string>
+    <string name="info_section_contact_text">If you have an improvement or new feature in mind, write me at:\n\nfere.espiritu@gmail.com\n\nWe will review if the proposed functionality is viable.\n\nThe app is available on my GitHub repository:\nhttps://github.com/espiritu1/sengled-local-control</string>
+
+    <string name="info_disclaimer">⚠ This application is NOT affiliated with or official Sengled.\n\nThe Android app was independently developed. The UDP communication protocol is based on documentation from the community project HamzaETTH/SengledTools on GitHub, allowing the bulbs to work locally without relying on external servers.\n\nhttps://github.com/HamzaETTH/SengledTools</string>
 
     <string name="info_buttons_title">Buttons</string>
     <string name="info_btn_refresh">Refresh — Checks the status of your bulbs</string>
@@ -144,7 +146,5 @@
     <string name="info_btn_brightness">Brightness — Adjust the light intensity</string>
     <string name="info_btn_reorder">Reorder — Press and hold a card, then drag it up or down to change the bulb order</string>
 
-    <string name="info_disclaimer">⚠ This application is NOT affiliated with or official Sengled.\n\nThe Android app was independently developed. The UDP communication protocol is based on documentation from the community project &lt;a href="https://github.com/HamzaETTH/SengledTools"&gt;HamzaETTH/SengledTools&lt;/a&gt; on GitHub, allowing the bulbs to work locally without relying on external servers.</string>
-
-    <string name="lang_toggle">EN</string>
+    <string name="close">Close</string>
 </resources>
