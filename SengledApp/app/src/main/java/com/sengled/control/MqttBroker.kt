@@ -9,12 +9,13 @@ import java.util.concurrent.ConcurrentHashMap
 import javax.net.ssl.SSLServerSocketFactory
 
 /**
- * Minimal MQTT 3.1.1 broker with TLS for Sengled bulb pairing.
+ * Minimal MQTT 3.1.1 broker with TLS, owned by [MqttBrokerService] and also
+ * used during bulb pairing.
  *
- * The ESP8266 bulb firmware uses the AWS IoT C SDK which requires TLS.
- * After receiving WiFi credentials, the bulb connects to this broker to
- * complete its setup sequence — without a working MQTT connection the bulb
- * keeps blinking indefinitely.
+ * Running as a persistent foreground-service broker so that paired bulbs
+ * always find their master on port 8883 (TLS). The ESP8266 firmware uses
+ * the AWS IoT C SDK which requires TLS — without a reachable MQTT broker
+ * the bulb keeps blinking indefinitely.
  *
  * This broker handles only the operations the bulb needs:
  *   CONNECT  → CONNACK
@@ -23,47 +24,69 @@ import javax.net.ssl.SSLServerSocketFactory
  *   PINGREQ  → PINGRESP
  *   DISCONNECT → close
  */
-class MqttBroker(private val port: Int = DEFAULT_PORT) {
+object MqttBroker {
 
-    companion object {
-        private const val TAG = "MqttBroker"
-        private const val DEFAULT_PORT = 8883
+    private const val TAG = "MqttBroker"
+    private const val DEFAULT_PORT = 8883
 
-        // MQTT packet types
-        private const val CONNECT = 1
-        private const val CONNACK = 2
-        private const val PUBLISH = 3
-        private const val PUBACK = 4
-        private const val PUBREC = 5
-        private const val PUBREL = 6
-        private const val PUBCOMP = 7
-        private const val SUBSCRIBE = 8
-        private const val SUBACK = 9
-        private const val UNSUBSCRIBE = 10
-        private const val UNSUBACK = 11
-        private const val PINGREQ = 12
-        private const val PINGRESP = 13
-        private const val DISCONNECT = 14
-    }
+    // MQTT packet types
+    private const val CONNECT = 1
+    private const val CONNACK = 2
+    private const val PUBLISH = 3
+    private const val PUBACK = 4
+    private const val PUBREC = 5
+    private const val PUBREL = 6
+    private const val PUBCOMP = 7
+    private const val SUBSCRIBE = 8
+    private const val SUBACK = 9
+    private const val UNSUBSCRIBE = 10
+    private const val UNSUBACK = 11
+    private const val PINGREQ = 12
+    private const val PINGRESP = 13
+    private const val DISCONNECT = 14
 
     private var serverSocket: ServerSocket? = null
     private var thread: Thread? = null
     @Volatile var isRunning = false
         private set
 
-    // Track connected clients for future command delivery
+    /** Track connected clients for future command delivery. */
     val clients = ConcurrentHashMap<String, Socket>()
 
-    fun start(): Boolean {
+    private var refCount = 0
+
+    /** Starts the broker (or bumps the refcount if already running). Returns true when running. */
+    fun acquire(): Boolean = synchronized(this) {
+        if (refCount == 0) {
+            val started = startInternal()
+            if (started) refCount = 1
+            started
+        } else {
+            refCount++
+            true
+        }
+    }
+
+    /** Releases a reference; the broker stops when the last reference is released. Idempotent. */
+    fun release() {
+        synchronized(this) {
+            refCount = (refCount - 1).coerceAtLeast(0)
+            if (refCount == 0) stopInternal()
+        }
+    }
+
+    // ── Internal lifecycle ─────────────────────────────────────────────
+
+    private fun startInternal(): Boolean {
         return try {
             val factory: SSLServerSocketFactory = SslCertGenerator.createSslServerSocketFactory()
-            serverSocket = factory.createServerSocket(port).apply {
+            serverSocket = factory.createServerSocket(DEFAULT_PORT).apply {
                 reuseAddress = true
             }
             isRunning = true
 
             thread = Thread({
-                Log.d(TAG, "MQTT broker started on port $port (TLS)")
+                Log.d(TAG, "MQTT broker started on port $DEFAULT_PORT (TLS)")
                 while (isRunning) {
                     try {
                         val client = serverSocket?.accept() ?: break
@@ -83,7 +106,7 @@ class MqttBroker(private val port: Int = DEFAULT_PORT) {
         }
     }
 
-    fun stop() {
+    private fun stopInternal() {
         isRunning = false
         try { serverSocket?.close() } catch (ex: Exception) { /* ignore */ }
         serverSocket = null

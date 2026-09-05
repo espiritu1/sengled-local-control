@@ -69,6 +69,7 @@ class MainActivity : AppCompatActivity(), BulbAdapter.Listener {
         refreshLanguageButton()
 
         ScheduleManager.startService(this)
+        MqttBrokerService.start(this)
 
         setupDiagnostics()
 

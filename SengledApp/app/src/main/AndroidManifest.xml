@@ -50,6 +50,15 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="smart_home_light_routines" />
         </service>
+
+        <service
+            android:name=".MqttBrokerService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="smart_home_light_mqtt_broker" />
+        </service>
     </application>
 
 </manifest>

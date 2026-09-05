@@ -42,7 +42,6 @@ class PairingWizardActivity : AppCompatActivity() {
     private var bulbIp = ""
     private var savedLanIp: String = ""
 
-    private var mqttBroker: MqttBroker? = null
     private var pairingServer: PairingServer? = null
 
     private val handler = Handler(Looper.getMainLooper())
@@ -79,8 +78,6 @@ class PairingWizardActivity : AppCompatActivity() {
         super.onDestroy()
         apCheckRunnable?.let { handler.removeCallbacks(it) }
         unregisterNetworkCallback()
-        mqttBroker?.stop()
-        mqttBroker = null
         pairingServer?.stop()
         pairingServer = null
     }
@@ -301,12 +298,10 @@ class PairingWizardActivity : AppCompatActivity() {
                 // requires TLS — without a working MQTT connection the bulb
                 // blinks indefinitely.
                 appendLog(txtLog, "Iniciando broker MQTT en $lanIp:8883…")
-                mqttBroker = MqttBroker().also { broker ->
-                    if (broker.start()) {
-                        appendLog(txtLog, "Broker MQTT listo (TLS)")
-                    } else {
-                        appendLog(txtLog, "⚠ No se pudo iniciar broker MQTT — el foco puede parpadear")
-                    }
+                if (MqttBroker.acquire()) {
+                    appendLog(txtLog, "Broker MQTT listo (TLS)")
+                } else {
+                    appendLog(txtLog, "⚠ No se pudo iniciar broker MQTT — el foco puede parpadear")
                 }
 
                 // Start the pairing HTTP server with the correct broker address
@@ -466,10 +461,9 @@ class PairingWizardActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 updateUi(txtStatus, txtLog, "Error: ${e.message}", e.stackTraceToString())
             } finally {
-                // Stop the MQTT broker and pairing server — they're no longer needed
-                // after pairing completes (or fails). The bulb will use UDP from now on.
-                mqttBroker?.stop()
-                mqttBroker = null
+                // Release the broker reference acquired for pairing. The shared
+                // broker stays alive if the MqttBrokerService holds it.
+                MqttBroker.release()
                 pairingServer?.stop()
                 pairingServer = null
             }

@@ -8,9 +8,8 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
 import java.math.BigInteger
 import java.security.KeyPair
 import java.security.KeyPairGenerator
-import java.security.SecureRandom
-import java.security.Security
 import java.security.KeyStore
+import java.security.SecureRandom
 import java.util.Date
 import javax.net.ssl.KeyManagerFactory
 import javax.net.ssl.SSLContext
@@ -20,15 +19,11 @@ import javax.net.ssl.TrustManagerFactory
 /**
  * Generates self-signed TLS certificates for the embedded MQTT broker.
  * Mirrors the Python tool's cert generation (CA + server cert).
+ *
+ * Uses only the platform providers (Conscrypt on Android). Bouncy Castle's
+ * `SHA256withRSA` is not available on Android P+ and must not be requested.
  */
 object SslCertGenerator {
-
-    init {
-        // Register Bouncy Castle provider if not already present
-        if (Security.getProvider("BC") == null) {
-            Security.insertProviderAt(org.bouncycastle.jce.provider.BouncyCastleProvider(), 1)
-        }
-    }
 
     /**
      * Creates an SSLServerSocketFactory with a self-signed server certificate.
@@ -39,7 +34,7 @@ object SslCertGenerator {
         val cert = generateSelfSignedCert(keyPair, "SengledLocalBroker")
 
         // Build a KeyStore with the server cert + key
-        val keyStore = KeyStore.getInstance("PKCS12", "BC").apply {
+        val keyStore = KeyStore.getInstance("PKCS12").apply {
             load(null, null)
             setKeyEntry("server", keyPair.private, "".toCharArray(), arrayOf(cert))
         }
@@ -50,7 +45,7 @@ object SslCertGenerator {
         }
 
         // TrustManagerFactory — not critical for a server, but SSLContext needs it
-        val trustStore = KeyStore.getInstance("PKCS12", "BC").apply {
+        val trustStore = KeyStore.getInstance("PKCS12").apply {
             load(null, null)
             setCertificateEntry("ca", cert)
         }
@@ -88,13 +83,11 @@ object SslCertGenerator {
         )
 
         val signer: ContentSigner = JcaContentSignerBuilder("SHA256withRSA")
-            .setProvider("BC")
             .build(keyPair.private)
 
         val certHolder = builder.build(signer)
 
         return JcaX509CertificateConverter()
-            .setProvider("BC")
             .getCertificate(certHolder)
     }
 }
