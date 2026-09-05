@@ -45,7 +45,6 @@
     <string name="routine_off_notification">%1$s turned off</string>
     <string name="routine_notification_body_at">At %1$s</string>
 
-    <string name="mqtt_broker_channel_name">Local broker</string>
     <string name="mqtt_broker_notification_title">Local broker active</string>
     <string name="mqtt_broker_notification_text">Bulbs are connected</string>
 

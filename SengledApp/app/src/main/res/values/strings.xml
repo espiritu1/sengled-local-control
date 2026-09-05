@@ -45,7 +45,6 @@
     <string name="routine_off_notification">%1$s se apagó</string>
     <string name="routine_notification_body_at">A las %1$s</string>
 
-    <string name="mqtt_broker_channel_name">Broker local</string>
     <string name="mqtt_broker_notification_title">Broker local activo</string>
     <string name="mqtt_broker_notification_text">Los focos están conectados</string>
 

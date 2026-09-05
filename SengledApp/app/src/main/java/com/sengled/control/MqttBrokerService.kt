@@ -16,12 +16,17 @@ import androidx.core.app.NotificationCompat
  * running persistently so paired bulbs always find their master on TLS port
  * 8883. The service is started at app launch, on boot, and also during the
  * pairing wizard (which acquires an additional reference via [MqttBroker.acquire]).
+ *
+ * It shares the single persistent "rutinas" notification with [RoutineService]
+ * (same channel and id) so the phone shows only one foreground bar instead of
+ * two; the routine service overwrites it with the next scheduled time, and any
+ * temporary "bulb turned on/off" alert stays a separate auto-cancel notice.
  */
 class MqttBrokerService : Service() {
 
     companion object {
-        private const val CHANNEL_ID = "mqtt_broker"
-        private const val NOTIF_ID = 2
+        private const val CHANNEL_ID = "rutinas"
+        private const val NOTIF_ID = 1
         private const val TAG = "MqttBrokerService"
 
         fun start(context: Context) {
@@ -66,8 +71,8 @@ class MqttBrokerService : Service() {
         nm.createNotificationChannel(
             NotificationChannel(
                 CHANNEL_ID,
-                getString(R.string.mqtt_broker_channel_name),
-                NotificationManager.IMPORTANCE_LOW
+                getString(R.string.routine_service_channel_name),
+                NotificationManager.IMPORTANCE_DEFAULT
             )
         )
     }

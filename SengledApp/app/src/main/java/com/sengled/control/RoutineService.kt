@@ -41,6 +41,7 @@ class RoutineService : Service() {
         private const val GRACE_BACK_MS = 10 * 60_000L
         private const val WAKE_LOCK_TIMEOUT_MS = 10_000L
         private const val NOTIF_STAGGER_MS = 400L
+        private const val NOTIF_AHEAD_MS = 30 * 60 * 1000L
         private const val PREFS_NOTIF_COUNTER = "event_notification_id"
         private const val CATCH_UP_DELAY_MS = 2_000L
 
@@ -100,7 +101,8 @@ class RoutineService : Service() {
 
         val h = handler ?: return
         h.removeCallbacks(ticker)
-        val delay = next - System.currentTimeMillis()
+        var delay = next - System.currentTimeMillis()
+        if (delay > NOTIF_AHEAD_MS) delay -= NOTIF_AHEAD_MS
         if (delay <= 0) h.post(ticker) else h.postDelayed(ticker, delay)
         ScheduleManager.scheduleWakeKick(this, next)
         updateStatusNotification(next)
@@ -293,7 +295,11 @@ class RoutineService : Service() {
     }
 
     private fun updateStatusNotification(nextEvent: Long) {
-        val text = getString(R.string.routine_service_notification_next, TIME_FORMAT.format(Date(nextEvent)))
+        val text = if (nextEvent - System.currentTimeMillis() <= NOTIF_AHEAD_MS) {
+            getString(R.string.routine_service_notification_next, TIME_FORMAT.format(Date(nextEvent)))
+        } else {
+            getString(R.string.routine_service_notification_text)
+        }
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         nm.notify(NOTIF_ID_STATUS, buildStatusNotification(text))
     }
