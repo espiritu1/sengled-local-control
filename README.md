@@ -2,7 +2,7 @@
 
 **Sengled smart bulbs, under your own roof. No cloud. No accounts. No Internet required.**
 
-![Sengled Control — main screen: per-bulb cards with ON/OFF switch and brightness slider](docs/screenshots/captura-pantalla.jpg)
+<img src="docs/screenshots/captura-pantalla.jpg" alt="Sengled Control — main screen: per-bulb cards with ON/OFF switch and brightness slider" width="540" />
 
 When Sengled discontinued these bulbs, their cloud died — and with it, the official app. This project reverse-engineers the local Sengled UDP protocol and gives you a native Android app that talks directly to each **Sengled W21-N11** white bulb (EMW3091 module, fixed 2700K) over your LAN (UDP port 9080). Discontinued hardware, kept alive — 100% local, 100% yours.
 
@@ -33,7 +33,7 @@ Native app (minSdk 24, targetSdk 34) that talks directly to each bulb over UDP.
 
 The app also works hands-free in the background: it re-applies missed routine events when the phone reconnects to home Wi-Fi (catch-up), keeps bulbs connected through a persistent local MQTT broker, and surfaces network-change notifications and diagnostics in the toolbar.
 
-![Sengled Control — bulb options screen](docs/screenshots/captura-opciones.jpg)
+<img src="docs/screenshots/captura-opciones.jpg" alt="Sengled Control — bulb options screen" width="540" />
 
 ### Build
 
