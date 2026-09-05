@@ -16,13 +16,22 @@ When Sengled discontinued these bulbs, their cloud died — and with it, the off
 
 ## SengledApp — Android app
 
-Native app (minSdk 24, targetSdk 34) that talks directly to each bulb over UDP. Features:
+Native app (minSdk 24, targetSdk 34) that talks directly to each bulb over UDP.
 
-- **Per-bulb cards** with ON/OFF switch and brightness slider (1–100)
-- **Real status per bulb** on open: *Prendida* (on) / *Apagada* (off) / *Sin conexión* (offline)
-- **Daily routines per bulb with their own brightness** (e.g. ON at 19:30 at 7% brightness, OFF at 00:00)
-- **Catch-up when you come home**: when the phone reconnects to the home Wi-Fi, the app re-applies the routine idempotently (the lamp turns on by itself without a state query)
-- Rename bulbs, network-change notifications, diagnostics in the toolbar
+### What you can do
+
+| Action | What it does |
+|---|---|
+| **Refresh** | Check the live status of every bulb on your LAN: *Prendida* (on) / *Apagada* (off) / *Sin conexión* (offline) |
+| **Add / pair a bulb** | Pair a new bulb with the in-app wizard (Wi-Fi credentials + built-in MQTT broker), or add an already-connected bulb by IP/MAC |
+| **Turn on / off** | Tap the switch on any bulb card to power the bulb |
+| **Adjust brightness** | Drag the slider (1–100%) to set the light intensity |
+| **Schedule routines** | Set daily on/off times per bulb, each with its own brightness (e.g. ON at 19:30 at 7%, OFF at 00:00) |
+| **Rename** | Give each bulb a friendly, recognizable name |
+| **Reorder cards** | Press and hold a card and drag it up or down to change the bulb order |
+| **Delete** | Remove a bulb from the app (it stays configured in your router) |
+
+The app also works hands-free in the background: it re-applies missed routine events when the phone reconnects to home Wi-Fi (catch-up), keeps bulbs connected through a persistent local MQTT broker, and surfaces network-change notifications and diagnostics in the toolbar.
 
 ![Sengled Control — bulb options screen](docs/screenshots/captura-opciones.jpg)
 
