@@ -41,16 +41,17 @@ class MainActivity : AppCompatActivity(), BulbAdapter.Listener {
 
         prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
 
-        // Apply saved language
-        val savedLang = prefs.getString("lang", null)
-        if (savedLang != null) {
-            val locale = Locale(savedLang)
-            Locale.setDefault(locale)
-            val config = resources.configuration
-            config.setLocale(locale)
-            @Suppress("DEPRECATION")
-            resources.updateConfiguration(config, resources.displayMetrics)
-        }
+        // Apply saved language. Spanish is the app default, so the stored value
+        // is always explicit ("es" or "en") and never falls back to the device
+        // locale, which would otherwise leave the app stuck in English when the
+        // device language is not Spanish.
+        val savedLang = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getString("lang", "es")
+        val locale = Locale(savedLang ?: "es")
+        Locale.setDefault(locale)
+        val config = resources.configuration
+        config.setLocale(locale)
+        @Suppress("DEPRECATION")
+        resources.updateConfiguration(config, resources.displayMetrics)
 
         bulbs += BulbRegistry.getBulbs(this).map { bulb ->
             bulb.copy(name = prefs.getString("name_${bulb.id}", null) ?: bulb.name)
@@ -398,24 +399,17 @@ class MainActivity : AppCompatActivity(), BulbAdapter.Listener {
 
     private fun toggleLanguage() {
         val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-        val current = prefs.getString("lang", null)
-        val newLang = if (current == "en") null else "en"
+        val current = prefs.getString("lang", "es")
+        val newLang = if (current == "en") "es" else "en"
 
-        val editor = prefs.edit()
-        if (newLang == null) {
-            editor.remove("lang")
-        } else {
-            editor.putString("lang", newLang)
-        }
-        editor.apply()
-
+        prefs.edit().putString("lang", newLang).apply()
         recreate()
     }
 
     private fun refreshLanguageButton() {
         // The button is FIXED to show the CURRENT language (a status indicator,
         // not the target): "ES" while the app is in Spanish, "EN" while in English.
-        val currentLang = prefs.getString("lang", null)
+        val currentLang = prefs.getString("lang", "es")
         binding.btnLang.text = if (currentLang == "en") "EN" else "ES"
     }
 
