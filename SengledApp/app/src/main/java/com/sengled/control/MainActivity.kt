@@ -93,13 +93,13 @@ class MainActivity : AppCompatActivity(), BulbAdapter.Listener {
                     var state = if (bulb.ip.isNotBlank()) udp.getState(bulb.ip) else null
                     var effectiveIp = bulb.ip
 
-                    // The saved IP may be empty (user skipped it during pairing) or
-                    // stale (DHCP reassigned it). When the bulb does not answer,
-                    // fall back to discovering it on the LAN by its MAC, then
-                    // persist the fresh IP so the next refresh is instant.
+                    // The saved IP may be empty (user skipped it during pairing).
+                    // If we already have a saved IP (static) and it doesn't respond,
+                    // don't do a full MAC scan - just mark as disconnected.
+                    // Only fall back to MAC discovery when IP is missing.
                     if (state == null) {
                         val mac = BulbRegistry.getMac(this@MainActivity, bulb.id)
-                        if (mac.isNotBlank()) {
+                        if (mac.isNotBlank() && bulb.ip.isBlank()) {
                             val foundIp = WifiDetector.findBulbByMac(
                                 this@MainActivity, mac, 12_000
                             )
@@ -111,6 +111,7 @@ class MainActivity : AppCompatActivity(), BulbAdapter.Listener {
                                 state = udp.getState(foundIp)
                             }
                         }
+                        // If IP is known but unreachable, skip MAC scan to keep refresh fast
                     }
 
                     val finalIp = effectiveIp
