@@ -150,4 +150,14 @@
     <string name="info_btn_reorder">Reordenar — Mantené presionada una tarjeta y movela hacia arriba o abajo para cambiar el orden de los focos</string>
 
     <string name="close">Cerrar</string>
+
+    <string name="pairing_back">Volver</string>
+    <string name="pairing_exit_confirm_title">¿Salir del pareo?</string>
+    <string name="pairing_exit_confirm_message">Vas a perder los datos que ingresaste.</string>
+    <string name="pairing_exit_confirm_positive">Salir</string>
+    <string name="pairing_exit_confirm_negative">Quedarme</string>
+    <string name="pairing_cancel_confirm_title">¿Cancelar el pareo?</string>
+    <string name="pairing_cancel_confirm_message">Se va a detener el proceso de pareo del foco.</string>
+    <string name="pairing_cancel_confirm_positive">Cancelar pareo</string>
+    <string name="pairing_cancel_confirm_negative">Seguir</string>
 </resources>

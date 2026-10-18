@@ -150,4 +150,14 @@
     <string name="info_btn_reorder">Reorder — Press and hold a card, then drag it up or down to change the bulb order</string>
 
     <string name="close">Close</string>
+
+    <string name="pairing_back">Back</string>
+    <string name="pairing_exit_confirm_title">Leave pairing?</string>
+    <string name="pairing_exit_confirm_message">You will lose the data you entered.</string>
+    <string name="pairing_exit_confirm_positive">Leave</string>
+    <string name="pairing_exit_confirm_negative">Stay</string>
+    <string name="pairing_cancel_confirm_title">Cancel pairing?</string>
+    <string name="pairing_cancel_confirm_message">The bulb pairing process will stop.</string>
+    <string name="pairing_cancel_confirm_positive">Cancel pairing</string>
+    <string name="pairing_cancel_confirm_negative">Continue</string>
 </resources>

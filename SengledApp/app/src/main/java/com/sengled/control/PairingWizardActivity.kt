@@ -15,9 +15,12 @@ import android.widget.EditText
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
+import android.content.pm.ActivityInfo
 import android.net.wifi.WifiManager
 import androidx.appcompat.app.AlertDialog
 
@@ -44,6 +47,12 @@ class PairingWizardActivity : AppCompatActivity() {
 
     private var pairingServer: PairingServer? = null
 
+    // Set to true when the user aborts the wizard or the Activity is destroyed.
+    // The background pairing Thread checks it between stages and bails out, so
+    // an aborted or recreated wizard can never leave a pairing running.
+    @Volatile
+    private var pairingCancelled = false
+
     private val handler = Handler(Looper.getMainLooper())
     private var apCheckRunnable: Runnable? = null
     private var connectivityManager: ConnectivityManager? = null
@@ -51,6 +60,12 @@ class PairingWizardActivity : AppCompatActivity() {
 
     companion object {
         private const val REQ_LOCATION = 1001
+        private const val KEY_STEP = "wizard_step"
+        private const val KEY_SSID = "wizard_ssid"
+        private const val KEY_PASSWORD = "wizard_password"
+        private const val KEY_LAN_IP = "wizard_lan_ip"
+        private const val KEY_MAC = "wizard_mac"
+        private const val KEY_IP = "wizard_ip"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -59,8 +74,28 @@ class PairingWizardActivity : AppCompatActivity() {
 
         connectivityManager = getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
 
+        // Restore the wizard position and inputs after a configuration change
+        // (rotation, theme, locale). Without this, every recreation restarted at
+        // step 1 and dropped the typed SSID/password.
+        if (savedInstanceState != null) {
+            currentStep = savedInstanceState.getInt(KEY_STEP, 1)
+            ssid = savedInstanceState.getString(KEY_SSID) ?: ""
+            password = savedInstanceState.getString(KEY_PASSWORD) ?: ""
+            savedLanIp = savedInstanceState.getString(KEY_LAN_IP) ?: ""
+            bulbMac = savedInstanceState.getString(KEY_MAC) ?: ""
+            bulbIp = savedInstanceState.getString(KEY_IP) ?: ""
+        }
+
         val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
-        toolbar.setNavigationOnClickListener { finish() }
+        toolbar.setNavigationOnClickListener { goBack() }
+        toolbar.navigationContentDescription = getString(R.string.pairing_back)
+
+        // Keep the system back button in sync with the on-screen back arrow.
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                goBack()
+            }
+        })
 
         btnNext = findViewById(R.id.btnNext)
         stepDots = listOf(
@@ -71,21 +106,93 @@ class PairingWizardActivity : AppCompatActivity() {
         )
 
         btnNext.setOnClickListener { onNextClicked() }
-        showStep(1)
+        showStep(currentStep)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putInt(KEY_STEP, currentStep)
+        outState.putString(KEY_SSID, ssid)
+        outState.putString(KEY_PASSWORD, password)
+        outState.putString(KEY_LAN_IP, savedLanIp)
+        outState.putString(KEY_MAC, bulbMac)
+        outState.putString(KEY_IP, bulbIp)
     }
 
     override fun onDestroy() {
-        super.onDestroy()
+        // Abort any in-flight pairing before the Activity goes away so the
+        // background Thread stops touching a destroyed Activity.
+        pairingCancelled = true
         apCheckRunnable?.let { handler.removeCallbacks(it) }
         unregisterNetworkCallback()
         pairingServer?.stop()
         pairingServer = null
+        super.onDestroy()
+    }
+
+    // ── Back navigation ────────────────────────────────────────────────
+
+    /**
+     * Back arrow / system back behaviour per step:
+     *   1. WiFi credentials   -> confirm exit (nothing to go back to)
+     *   2. Connect to bulb AP -> step 1
+     *   3. Pairing in progress-> confirm cancel, then step 2
+     *   4. Result             -> exit without saving (pairing already finished)
+     */
+    private fun goBack() {
+        when (currentStep) {
+            1 -> confirmExit()
+            2 -> showStep(1)
+            3 -> confirmCancelPairing()
+            else -> finish()
+        }
+    }
+
+    private fun confirmExit() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.pairing_exit_confirm_title)
+            .setMessage(R.string.pairing_exit_confirm_message)
+            .setPositiveButton(R.string.pairing_exit_confirm_positive) { _, _ -> finish() }
+            .setNegativeButton(R.string.pairing_exit_confirm_negative, null)
+            .show()
+    }
+
+    private fun confirmCancelPairing() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.pairing_cancel_confirm_title)
+            .setMessage(R.string.pairing_cancel_confirm_message)
+            .setPositiveButton(R.string.pairing_cancel_confirm_positive) { _, _ ->
+                cancelPairing()
+                showStep(2)
+            }
+            .setNegativeButton(R.string.pairing_cancel_confirm_negative, null)
+            .show()
+    }
+
+    /**
+     * Flags the running pairing Thread to stop. The Thread's finally block stops
+     * its HTTP server and releases the MQTT broker reference, so no resources
+     * are leaked by an aborted attempt.
+     */
+    private fun cancelPairing() {
+        pairingCancelled = true
     }
 
     // ── Step navigation ────────────────────────────────────────────────
 
     private fun showStep(step: Int) {
         currentStep = step
+
+        // Lock rotation only while pairing (step 3): the operation runs inside
+        // this Activity and must not be recreated or duplicated mid-flight.
+        // Every other step rotates freely, and the saved instance state keeps
+        // the wizard on the same step with the same inputs.
+        requestedOrientation = if (step == 3) {
+            ActivityInfo.SCREEN_ORIENTATION_LOCKED
+        } else {
+            ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
+
         val container = findViewById<android.widget.FrameLayout>(R.id.stepContainer)
         container.removeAllViews()
 
@@ -100,12 +207,23 @@ class PairingWizardActivity : AppCompatActivity() {
             1 -> {
                 layoutInflater.inflate(R.layout.step_wifi_credentials, container, true)
                 btnNext.text = getString(R.string.pairing_next)
+                btnNext.visibility = View.VISIBLE
+                // Restore typed credentials after a configuration change.
+                if (ssid.isNotEmpty()) {
+                    findViewById<TextInputEditText>(R.id.editSsid).setText(ssid)
+                }
+                if (password.isNotEmpty()) {
+                    findViewById<TextInputEditText>(R.id.editPassword).setText(password)
+                }
                 val btnDetect = findViewById<com.google.android.material.button.MaterialButton>(R.id.btnDetect)
                 btnDetect.setOnClickListener { showDetectedNetworks() }
             }
             2 -> {
                 layoutInflater.inflate(R.layout.step_connect_ap, container, true)
                 btnNext.text = getString(R.string.pairing_next)
+                // Re-enable the button: cancelling the pairing (step 3) lands here
+                // with the button hidden.
+                btnNext.visibility = View.VISIBLE
                 // Save the phone's home WiFi IP BEFORE the user switches to bulb AP.
                 // We'll need this IP for the MQTT broker and HTTP server later.
                 if (savedLanIp.isEmpty()) {
@@ -118,6 +236,7 @@ class PairingWizardActivity : AppCompatActivity() {
             3 -> {
                 layoutInflater.inflate(R.layout.step_pairing_progress, container, true)
                 btnNext.visibility = View.GONE
+                pairingCancelled = false
                 runPairing()
             }
             4 -> {
@@ -285,7 +404,11 @@ class PairingWizardActivity : AppCompatActivity() {
         val txtLog = findViewById<TextView>(R.id.txtPairingLog)
 
         Thread {
+            // Track whether this run took a broker reference, so an early abort
+            // never releases a broker the foreground service is holding.
+            var mqttAcquired = false
             try {
+                if (pairingCancelled) return@Thread
                 updateUi(txtStatus, txtLog, getString(R.string.pairing_connecting_bulb), "")
 
                 // Use the LAN IP captured before the user switched to bulb AP.
@@ -298,7 +421,8 @@ class PairingWizardActivity : AppCompatActivity() {
                 // requires TLS — without a working MQTT connection the bulb
                 // blinks indefinitely.
                 appendLog(txtLog, "Iniciando broker MQTT en $lanIp:8883…")
-                if (MqttBroker.acquire()) {
+                mqttAcquired = MqttBroker.acquire()
+                if (mqttAcquired) {
                     appendLog(txtLog, "Broker MQTT listo (TLS)")
                 } else {
                     appendLog(txtLog, "⚠ No se pudo iniciar broker MQTT — el foco puede parpadear")
@@ -347,6 +471,7 @@ class PairingWizardActivity : AppCompatActivity() {
                 val fallbackMac = WifiDetector.getConnectedBssid(this@PairingWizardActivity)
                 appendLog(txtLog, "BSSID actual (fallback MAC): ${fallbackMac ?: "n/a"}")
                 for (attempt in 1..maxAttempts) {
+                    if (pairingCancelled) return@Thread
                     if (attempt > 1) {
                         updateUi(
                             txtStatus, txtLog,
@@ -377,6 +502,7 @@ class PairingWizardActivity : AppCompatActivity() {
                 }
                 bulbMac = handshake.mac
                 appendLog(txtLog, "MAC: $bulbMac")
+                if (pairingCancelled) return@Thread
 
                 // Step 2: Scan WiFi
                 appendLog(txtLog, "Escaneando redes WiFi…")
@@ -384,6 +510,7 @@ class PairingWizardActivity : AppCompatActivity() {
                 Thread.sleep(5000)
                 val networks = PairingProtocol.getApList(socket)
                 appendLog(txtLog, "Redes encontradas: ${networks.size}")
+                if (pairingCancelled) return@Thread
 
                 // Step 3: Re-handshake
                 appendLog(txtLog, "Re-handshake…")
@@ -394,6 +521,7 @@ class PairingWizardActivity : AppCompatActivity() {
                     socket.close()
                     return@Thread
                 }
+                if (pairingCancelled) return@Thread
 
                 // Step 4: Send credentials
                 // Use the phone's LAN IP (not the bulb AP IP) for the HTTP
@@ -411,6 +539,7 @@ class PairingWizardActivity : AppCompatActivity() {
                     socket.close()
                     return@Thread
                 }
+                if (pairingCancelled) return@Thread
 
                 // Step 5: End config
                 appendLog(txtLog, "Finalizando configuración…")
@@ -439,6 +568,7 @@ class PairingWizardActivity : AppCompatActivity() {
                     return@Thread
                 }
                 appendLog(txtLog, "Ya estás en \"$ssid\". Buscando el foco en la red…")
+                if (pairingCancelled) return@Thread
 
                 // Step 7: Scan the LAN until we find the bulb by its MAC. The bulb
                 // needs time to boot and join the network, so keep scanning up to
@@ -453,6 +583,7 @@ class PairingWizardActivity : AppCompatActivity() {
                     updateUi(txtStatus, txtLog, getString(R.string.pairing_verification_failed),
                         getString(R.string.pairing_scan_failed_hint))
                 }
+                if (pairingCancelled) return@Thread
                 // Always land on the result step: the MAC is known from the
                 // handshake, and the user can confirm/edit the auto-detected IP or
                 // type the one shown in their router.
@@ -462,8 +593,9 @@ class PairingWizardActivity : AppCompatActivity() {
                 updateUi(txtStatus, txtLog, "Error: ${e.message}", e.stackTraceToString())
             } finally {
                 // Release the broker reference acquired for pairing. The shared
-                // broker stays alive if the MqttBrokerService holds it.
-                MqttBroker.release()
+                // broker stays alive if the MqttBrokerService holds it. Never
+                // release a reference this run did not take.
+                if (mqttAcquired) MqttBroker.release()
                 pairingServer?.stop()
                 pairingServer = null
             }
