@@ -1,0 +1,78 @@
+# openspec/config.yaml
+# Initialized by sdd-init on 2026-10-18; re-verified against the repo on 2026-10-18 (second init run). Artifact store: openspec (file-based).
+schema: spec-driven
+
+context: |
+  Tech stack: Kotlin 1.9.24 + Android (AGP 8.5.2, Gradle 8.10.2, JDK 17.0.20), single :app module, package com.sengled.control
+  Architecture: Single-activity app (MainActivity, PairingWizardActivity) + foreground services (RoutineService, MqttBrokerService); local UDP protocol per bulb on port 9080, embedded MQTT broker
+  Companion: SengledTools/ Python toolkit (CLI, web UI, Home Assistant custom component sengled_udp, firmware/OTA utils) — gitignored here as a separate fork (see README), outside the Gradle build; no Python test runner either
+  Testing: No test suite exists — Gradle testDebugUnitTest runs NO-SOURCE (re-verified 2026-10-18); JUnit is not on the classpath (see testing: below)
+  Style: AGENTS.md Kotlin rules (immutable val, UdpClient().use { }, SharedPreferences via manager objects, string resources in values/ + values-en/, conventional commits)
+
+strict_tdd: false
+
+testing:
+  strict_tdd: false
+  strict_tdd_reason: "No test framework on the classpath: AGP unit-test task scaffolding exists but the project has zero test sources and no JUnit dependency. Strict TDD is not viable until test dependencies are added."
+  detected: "2026-10-18"
+  test_runner:
+    command: 'SengledApp\gradlew.bat testDebugUnitTest'
+    framework: "none configured (AGP scaffolding only; add testImplementation junit:junit to enable)"
+    status: "task exists, executes NO-SOURCE (verified 2026-10-18)"
+  layers:
+    unit:
+      available: false
+      tool: "Gradle testDebugUnitTest task present; JUnit dependency missing"
+    integration:
+      available: false
+      tool: "connectedAndroidTest task present; androidx.test dependencies missing"
+    e2e:
+      available: false
+      tool: "none"
+  coverage:
+    available: false
+    command: ""
+    note: "No JaCoCo plugin configured"
+  manual_checks:
+    note: "SengledTools/test_udp_commands.py is a manual hardware-verification script (needs a live bulb IP:9080); it is not an automated suite. pytest is not installed in SengledTools/.venv and requirements.txt has no test deps."
+  quality:
+    linter:
+      available: true
+      command: 'SengledApp\gradlew.bat lint'
+      tool: "Android Lint (AGP built-in, default rules)"
+    type_checker:
+      available: true
+      command: 'SengledApp\gradlew.bat compileDebugKotlin'
+      tool: "Kotlin compiler (null-safety and type system enforced at compile time)"
+    formatter:
+      available: false
+      command: ""
+      tool: "none (no ktlint/spotless/detekt/.editorconfig)"
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+    - State test impact explicitly: no test suite exists today; propose adding unit tests alongside behavior changes when the logic is pure Kotlin (ScheduleManager, BulbRegistry, protocol/crypto helpers)
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include sequence diagrams for complex flows
+    - Document architecture decisions with rationale
+    - Keep network work off the main thread (executor/coroutines); every UDP operation uses a scoped UdpClient().use { } socket
+  tasks:
+    - Group by phase, use hierarchical numbering
+    - Keep tasks completable in one session
+  apply:
+    guidelines:
+      - Follow existing code patterns from AGENTS.md (Kotlin idioms, manager objects for SharedPreferences, view binding, Material components)
+      - Never hardcode user-facing strings; add every string to res/values/ (Spanish) and res/values-en/ (English)
+      - Conventional commits only: feat, fix, refactor, docs, build, chore — no AI attribution
+    tdd: false
+    test_command: 'SengledApp\gradlew.bat testDebugUnitTest'
+  verify:
+    test_command: 'SengledApp\gradlew.bat testDebugUnitTest'
+    build_command: 'SengledApp\gradlew.bat assembleDebug'
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas
