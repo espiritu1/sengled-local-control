@@ -14,12 +14,15 @@
     <string name="rename_save">Guardar</string>
     <string name="rename_cancel">Cancelar</string>
 
-    <string name="edit_ip_title">Editar IP del foco</string>
-    <string name="edit_ip_save">Guardar IP</string>
-    <string name="edit_ip_hint">La IP del foco \'%1$s\' es: %2$s.\n\nSi la IP cambió (el router la asigna automáticamente), poné la nueva IP que veas en el router para que la app siga encontrando el foco.</string>
+    <!-- Edit connection (IP + MAC) -->
+    <string name="edit_connection_title">Editar conexión del foco</string>
+    <string name="edit_connection_label_ip">Dirección IP</string>
+    <string name="edit_connection_label_mac">Dirección MAC</string>
+    <string name="edit_connection_error_ip">Ingresá una IP válida (4 octetos entre 0 y 255)</string>
+    <string name="edit_connection_error_mac">Ingresá 6 pares hexadecimales o dejá vacío</string>
 
     <string name="content_desc_rename">Renombrar foco</string>
-    <string name="content_desc_edit_ip">Editar IP del foco</string>
+    <string name="content_desc_edit_connection">Editar IP y MAC del foco</string>
     <string name="content_desc_refresh">Actualizar estado de los focos</string>
     <string name="content_desc_schedule">Configurar horario</string>
 

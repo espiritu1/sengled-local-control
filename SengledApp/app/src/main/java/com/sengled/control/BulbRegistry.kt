@@ -43,6 +43,28 @@ object BulbRegistry {
         savePaired(context, paired)
     }
 
+    /**
+     * Update the MAC of an existing bulb (paired only). Writes only `mac_<id>`
+     * — never `bulbs_json` or the bulb id (the id derives once at pairing and
+     * keys `name_<id>`, `routine_*_<id>`, `last_*_<id>`). A blank value clears
+     * the key entirely; any other value is stored canonically as
+     * `XX:XX:XX:XX:XX:XX` (uppercase, colon separated).
+     */
+    fun updateBulbMac(context: Context, bulbId: String, newMac: String) {
+        if (loadPaired(context).none { it.id == bulbId }) return
+        val editor = prefs(context).edit()
+        if (newMac.isBlank()) {
+            // Checked before normalization: normalizeMacToCanonical("") is null,
+            // so canonicalizing first would swallow the spec-required clear.
+            editor.remove("mac_$bulbId")
+                .apply()
+            return
+        }
+        val canonical = InputMasks.normalizeMacToCanonical(newMac) ?: return
+        editor.putString("mac_$bulbId", canonical)
+            .apply()
+    }
+
     /** Remove a bulb by id. */
     fun removeBulb(context: Context, bulbId: String) {
         val paired = loadPaired(context).toMutableList()
@@ -109,7 +131,14 @@ object BulbRegistry {
         val editor = prefs(context).edit()
         editor.putString(KEY_BULBS, arr.toString())
         if (mac.isNotEmpty() && macForId != null) {
-            editor.putString("mac_$macForId", mac)
+            // Store the canonical XX:XX:XX:XX:XX:XX form regardless of how the
+            // handshake delivered it (colon/dash separated, lowercase, etc.).
+            // Writing the raw value is what let a dash-separated BSSID fallback
+            // persist a malformed MAC that never matched the bulb again.
+            val canonical = InputMasks.normalizeMacToCanonical(mac)
+            if (canonical != null) {
+                editor.putString("mac_$macForId", canonical)
+            }
         }
         editor.apply()
     }

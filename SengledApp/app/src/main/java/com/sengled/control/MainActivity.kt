@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.text.InputFilter
 import android.provider.Settings
 import android.widget.EditText
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NotificationManagerCompat
@@ -100,15 +101,15 @@ class MainActivity : AppCompatActivity(), BulbAdapter.Listener {
                     if (state == null) {
                         val mac = BulbRegistry.getMac(this@MainActivity, bulb.id)
                         if (mac.isNotBlank() && bulb.ip.isBlank()) {
-                            val foundIp = WifiDetector.findBulbByMac(
+                            val found = WifiDetector.findBulbByMac(
                                 this@MainActivity, mac, 12_000
                             )
-                            if (foundIp != null) {
-                                effectiveIp = foundIp
-                                if (foundIp != bulb.ip) {
-                                    BulbRegistry.updateBulbIp(this@MainActivity, bulb.id, foundIp)
+                            if (found != null) {
+                                effectiveIp = found.ip
+                                if (found.ip != bulb.ip) {
+                                    BulbRegistry.updateBulbIp(this@MainActivity, bulb.id, found.ip)
                                 }
-                                state = udp.getState(foundIp)
+                                state = udp.getState(found.ip)
                             }
                         }
                         // If IP is known but unreachable, skip MAC scan to keep refresh fast
@@ -255,22 +256,50 @@ class MainActivity : AppCompatActivity(), BulbAdapter.Listener {
         val inputMac = EditText(this).apply {
             hint = getString(R.string.add_manual_hint_mac)
             inputType = android.text.InputType.TYPE_CLASS_TEXT
-            filters = arrayOf(InputFilter.AllCaps(), InputFilter.LengthFilter(17))
+            filters = arrayOf(InputFilter.AllCaps())
         }
 
-        val container = android.widget.LinearLayout(this).apply {
+        // Auto-insert separators as the user types: '.' every three digits in
+        // the IP and ':' every two hex digits in the MAC. The raw caps inside
+        // InputMasks (12 digits / 12 hex) are the length limit, so no
+        // LengthFilter on the MAC (it would fight the mask on deletion).
+        InputMasks.attachMask(inputIp, '.', InputMasks::ipRaw, InputMasks::formatIp)
+        InputMasks.attachMask(inputMac, ':', InputMasks::macRaw, InputMasks::formatMac)
+
+        // The dialog is built from a scrollable container (help text + fields)
+        // instead of setMessage + setView. A native AlertDialog cannot scroll its
+        // custom view, and a long message squashed the fields so the soft keyboard
+        // hid the IP/MAC inputs. With everything inside a ScrollView the user can
+        // scroll the form while typing.
+        val pad = (24 * resources.displayMetrics.density).toInt()
+        val density = resources.displayMetrics.density
+
+        val help = TextView(this).apply {
+            setText(R.string.add_manual_hint)
+            setPadding(pad, (8 * density).toInt(), pad, 0)
+        }
+
+        val fields = android.widget.LinearLayout(this).apply {
             orientation = android.widget.LinearLayout.VERTICAL
-            val pad = (24 * resources.displayMetrics.density).toInt()
-            setPadding(pad, 0, pad, 0)
+            setPadding(pad, (8 * density).toInt(), pad, 0)
             addView(inputName)
             addView(inputIp)
             addView(inputMac)
         }
 
+        val content = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            addView(help)
+            addView(fields)
+        }
+
+        val scroll = android.widget.ScrollView(this).apply {
+            addView(content)
+        }
+
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.add_manual_title)
-            .setMessage(R.string.add_manual_hint)
-            .setView(container)
+            .setView(scroll)
             .setPositiveButton(R.string.add_manual_save, null)
             .setNegativeButton(R.string.rename_cancel, null)
             .show()
@@ -341,8 +370,9 @@ class MainActivity : AppCompatActivity(), BulbAdapter.Listener {
         updateBulb(latest.copy(name = newName))
     }
 
-    override fun onEditIp(bulb: Bulb, newIp: String) {
+    override fun onEditConnection(bulb: Bulb, newIp: String, newMac: String) {
         BulbRegistry.updateBulbIp(this, bulb.id, newIp)
+        BulbRegistry.updateBulbMac(this, bulb.id, newMac)
         val latest = bulbs.firstOrNull { it.id == bulb.id } ?: bulb
         updateBulb(latest.copy(ip = newIp))
     }

@@ -81,7 +81,7 @@
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/content_desc_edit_ip"
+                android:contentDescription="@string/content_desc_edit_connection"
                 android:src="@drawable/ic_settings"
                 android:tint="@color/icon_green" />
         </LinearLayout>

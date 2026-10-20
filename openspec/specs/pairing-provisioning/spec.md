@@ -1,125 +1,145 @@
-# Pairing and Provisioning Specification
+# Vinculación y aprovisionamiento (Especificación)
 
-## Purpose
+## Propósito
 
-Current behavior of the 4-step Sengled wizard and manual add.
+Comportamiento actual del asistente de 4 pasos de Sengled y del alta manual.
 
-## Requirements
+## Requisitos
 
-### Requirement: Four-Step Wizard Flow (UI Steps)
+### Requisito: Flujo del asistente de cuatro pasos (pasos de la interfaz)
 
-The wizard SHALL walk 4 dotted steps: Wi-Fi credentials → connect to bulb AP `192.168.8.x` → pairing in progress → result (IP, MAC, default name `Foco {last-5-of-MAC}`, optional static IP).
+El asistente DEBERÁ recorrer 4 pasos con puntos: credenciales Wi-Fi → conectar a AP del foco `192.168.8.x` → vinculación en curso → resultado (IP, MAC, nombre predeterminado `Foco {last-5-of-MAC}`, IP estática opcional).
 
-#### Scenario: Successful pairing (wizard navigation)
+#### Escenario: Vinculación exitosa (navegación del asistente)
 
-- GIVEN all four steps completed
-- WHEN step 4 saves
-- THEN the wizard completes with the save and return behavior as specified
+- DADO que se han completado los cuatro pasos
+- CUANDO el paso 4 guarda
+- ENTONCES el asistente finaliza con el comportamiento de guardar y volver especificado
 
-#### Scenario: Scan failure falls through
+#### Escenario: Falla de escaneo continúa
 
-- GIVEN MAC discovery failed
-- WHEN the wizard advances
-- THEN step 4 still shows (manual IP entry)
+- DADO que la detección de MAC falló
+- CUANDO el asistente avanza
+- ENTONCES el paso 4 sigue mostrándose (ingreso manual de IP)
 
-### Requirement: Four-Step Wizard Save and Return
+### Requisito: Guardado y regreso del asistente de cuatro pasos
 
-Saving SHALL return to `MainActivity` with CLEAR_TOP | SINGLE_TOP.
+Al guardar, DEBERÁ volver a `MainActivity` con CLEAR_TOP | SINGLE_TOP.
 
-#### Scenario: Successful pairing (save and return)
+#### Escenario: Vinculación exitosa (guardar y volver)
 
-- GIVEN all four steps completed
-- WHEN step 4 saves
-- THEN the wizard saves and finishes with CLEAR_TOP | SINGLE_TOP
+- DADO que se han completado los cuatro pasos
+- CUANDO el paso 4 guarda
+- ENTONCES el asistente guarda y finaliza con CLEAR_TOP | SINGLE_TOP
 
-### Requirement: Wi-Fi Detection on Step 1
+### Requisito: Detección de Wi-Fi en el paso 1
 
-Step 1 SHALL offer a "Detectar" Wi-Fi scan list requiring runtime `ACCESS_FINE_LOCATION`, waiting a fixed 2500 ms after `startScan()`.
+El paso 1 DEBERÁ ofrecer una lista de escaneo Wi-Fi "Detectar" que requiere `ACCESS_FINE_LOCATION` en tiempo de ejecución, esperando 2500 ms fijos después de `startScan()`.
 
-#### Scenario: Detectar tapped
+#### Escenario: Se toca Detectar
 
-- GIVEN location permission granted
-- WHEN the user taps "Detectar"
-- THEN the app waits 2500 ms and lists the scanned networks
+- DADO que el permiso de ubicación fue otorgado
+- CUANDO el usuario toca "Detectar"
+- ENTONCES la aplicación espera 2500 ms y muestra las redes escaneadas
 
-### Requirement: Pairing Protocol on Step 3 (Stage Sequence)
+### Requisito: Protocolo de vinculación en el paso 3 (secuencia de etapas)
 
-Step 3 SHALL run on a background `Thread` against UDP `192.168.8.1:9080` with the protocol stage sequence: handshake, Wi-Fi/AP scans (5 s sleep), re-handshake, RC4 credentials (`SengledCrypto`, hardcoded key) targeting the phone's LAN IP, end config.
+El paso 3 DEBERÁ ejecutarse en un `Thread` en segundo plano contra UDP `192.168.8.1:9080` con la secuencia de etapas: handshake, escaneos Wi-Fi/AP (pausa de 5 s), re-handshake, credenciales RC4 (`SengledCrypto`, clave fija) dirigidas a la IP LAN del teléfono, fin de configuración.
 
-### Requirement: Pairing Protocol Handshake Retry Policy
+### Requisito: Política de reintentos del handshake del protocolo de vinculación
 
-Handshake SHALL retry 40 × (2 s + 2 s).
+El handshake DEBERÁ reintentarse 40 × (2 s + 2 s).
 
-### Requirement: Pairing Protocol MAC Fallback
+### Requisito: Alternativa de MAC en el protocolo de vinculación
 
-When the `startConfig` response has no MAC, the system SHALL fall back to the connected BSSID as the MAC.
+Cuando la respuesta de `startConfig` no incluye MAC, el sistema DEBERÁ utilizar el BSSID conectado como MAC provisional. El BSSID del AP del foco NO es necesariamente la MAC LAN del foco: son dos interfaces distintas del mismo dispositivo y pueden diferir en el último byte. Por eso la MAC del handshake es provisional y DEBERÁ reemplazarse por la MAC LAN real (la reportada por `search_devices`) en cuanto el foco se detecte en la red doméstica.
 
-#### Scenario: startConfig omits MAC
+#### Escenario: startConfig omite la MAC
 
-- GIVEN the `startConfig` response has no MAC
-- WHEN credentials are assembled
-- THEN the connected BSSID is used as the MAC
+- DADO que la respuesta de `startConfig` no incluye MAC
+- CUANDO se ensamblan las credenciales
+- ENTONCES se utiliza el BSSID conectado como MAC provisional
 
-### Requirement: Network Pinning During Pairing
+#### Escenario: El BSSID difiere de la MAC LAN
 
-The pairing socket SHALL bind to the phone's Wi-Fi interface; the process SHALL pin to the bulb-AP network during credential exchange. Both release afterwards.
+- DADO que el handshake respondió sin MAC y se usó el BSSID (p. ej. `...93:74`)
+- Y el foco reporta una MAC LAN distinta por `search_devices` (p. ej. `...93:73`)
+- CUANDO el foco se detecta en la red doméstica
+- ENTONCES la MAC LAN reportada reemplaza al BSSID antes de derivar el id/nombre y persistir
 
-#### Scenario: Mobile data enabled
+### Requisito: Fijación de red durante la vinculación
 
-- GIVEN mobile data is active
-- WHEN the process is pinned
-- THEN traffic reaches the bulb AP, not mobile data
+El socket de vinculación DEBERÁ enlazarse a la interfaz Wi-Fi del teléfono; el proceso DEBERÁ mantenerse en la red del AP del foco durante el intercambio de credenciales. Ambos se liberarán posteriormente.
 
-### Requirement: Post-Credentials Discovery and HTTP Server
+#### Escenario: Datos móviles activos
 
-After credentials the wizard SHALL prompt return to home Wi-Fi (`waitOffBulbAp`, 180 s) then find the bulb IP by `search_devices` MAC scan (180 s), never from `PairingServer` tracking. Step 3 SHALL run `PairingServer` (broker `lanIp:8883`) serving both cloud endpoints (`accessCloud.json`, `bimqtt`).
+- DADO que los datos móviles están activos
+- CUANDO el proceso está fijado a la red del AP
+- ENTONCES el tráfico llega al AP del foco, no a los datos móviles
 
-#### Scenario: Bulb rejoins, scan matches
+### Requisito: Detección posterior a credenciales y servidor HTTP
 
-- GIVEN the bulb joins home Wi-Fi and hits both endpoints
-- WHEN the scan matches within 180 s
-- THEN the IP persists; endpoint tracking is never consumed
+Después de enviar las credenciales, el asistente DEBERÁ indicar que vuelva a la Wi-Fi doméstica (`waitOffBulbAp`, 180 s) y luego buscar la IP del foco mediante un escaneo por MAC de `search_devices` (180 s), nunca mediante el seguimiento de `PairingServer`. La coincidencia DEBERÁ hacerse por los primeros 5 bytes de la MAC (OUI + prefijo del dispositivo), no por la MAC completa, porque el BSSID del handshake puede diferir de la MAC LAN en el último byte. El paso 3 DEBERÁ ejecutar `PairingServer` (broker `lanIp:8883`) que atienda ambos endpoints en la nube (`accessCloud.json`, `bimqtt`).
 
-### Requirement: Rotation and Back Navigation
+#### Escenario: El foco vuelve a conectarse y coincide el escaneo
 
-Rotation SHALL be locked ONLY on step 3; other steps rotate and restore state from `savedInstanceState`. Back SHALL route via `OnBackPressedCallback` → `goBack()`: 1 → confirm-exit, 2 → step 1, 3 → confirm-cancel then `pairingCancelled`, 4 → `finish()` WITHOUT saving.
+- DADO que el foco se conecta a la Wi-Fi doméstica y accede a ambos endpoints
+- CUANDO el escaneo coincide dentro de 180 s
+- ENTONCES la IP se guarda; el seguimiento de endpoints nunca se consume
 
-#### Scenario: Back on step 4
+#### Escenario: El escaneo coincide por prefijo aunque el último byte difiera
 
-- GIVEN the result step shows
-- WHEN the user presses back
-- THEN the wizard finishes without saving
+- DADO que la MAC del handshake (BSSID) termina en un byte distinto de la MAC LAN real
+- CUANDO el foco responde a `search_devices` con su MAC LAN
+- ENTONCES el escaneo coincide por los primeros 5 bytes, devuelve la IP y la MAC LAN real
 
-#### Scenario: Cancel during step 3
+### Requisito: Rotación y navegación hacia atrás
 
-- GIVEN the protocol thread runs
-- WHEN the user confirms cancel
-- THEN `pairingCancelled` is set between stages and step 2 returns
+La rotación DEBERÁ bloquearse ÚNICAMENTE en el paso 3; los demás pasos rotan y restauran su estado desde `savedInstanceState`. La navegación hacia atrás DEBERÁ pasar por `OnBackPressedCallback` → `goBack()`: 1 → confirmar salida, 2 → paso 1, 3 → confirmar cancelación y luego `pairingCancelled`, 4 → `finish()` SIN guardar.
 
-### Requirement: Broker Reference Guard on Step 3
+#### Escenario: Atrás en el paso 4
 
-Step 3 SHALL acquire a transient `MqttBroker` reference, released only if acquired (`mqttAcquired` guard). `onDestroy` SHALL cancel pairing, unregister callbacks, and stop `PairingServer`.
+- DADO que se muestra el paso de resultados
+- CUANDO el usuario pulsa atrás
+- ENTONCES el asistente finaliza sin guardar
 
-#### Scenario: Aborted before acquisition
+#### Escenario: Cancelación durante el paso 3
 
-- GIVEN pairing ends before acquisition
-- WHEN the thread's `finally` runs
-- THEN no broker reference is released
+- DADO que el hilo del protocolo está ejecutándose
+- CUANDO el usuario confirma la cancelación
+- ENTONCES se establece `pairingCancelled` entre etapas y se vuelve al paso 2
 
-### Requirement: Manual Add Path
+### Requisito: Protección de referencia al broker en el paso 3
 
-Manual add SHALL require name and IP, MAC optional; id = last 6 hex chars of MAC, else `"ip" + ip-without-dots`.
+El paso 3 DEBERÁ adquirir una referencia transitoria a `MqttBroker`, que se liberará solo si fue adquirida (protección `mqttAcquired`). `onDestroy` DEBERÁ cancelar la vinculación, anular el registro de callbacks y detener `PairingServer`.
 
-#### Scenario: Add without MAC
+#### Escenario: Interrupción antes de la adquisición
 
-- GIVEN name and IP, MAC blank
-- WHEN the user confirms
-- THEN the id is `ip` + the IP with dots stripped
+- DADO que la vinculación termina antes de adquirir la referencia
+- CUANDO se ejecuta el `finally` del hilo
+- ENTONCES no se libera ninguna referencia al broker
 
-## Annotations
+### Requisito: Alta manual
 
-- **Hardcoded Spanish strings (frozen):** 16 wizard strings bypass resources; rule violation, fix deferred.
-- **Dead code — not spec'd:** `PairingServer` endpoint tracking; `SengledCrypto.decryptPayload`.
-- **README drift:** retry comments approximate; code is truth.
-- **No test suite:** `testDebugUnitTest` NO-SOURCE; `lint` only.
-- **Out of scope:** `SengledTools/` (gitignored).
+El alta manual DEBERÁ requerir nombre e IP; la MAC es opcional. El id será los últimos 6 caracteres hexadecimales de la MAC, o bien `"ip"` + la IP sin puntos si no hay MAC. Los campos IP y MAC DEBERÁN usar la máscara de entrada compartida (`InputMasks.attachMask`): punto automático cada tres dígitos en la IP, dos puntos automático cada dos dígitos hex en la MAC, con tope de 12 dígitos/12 hex. El diálogo DEBERÁ ser desplazable para que el teclado en pantalla no oculte los campos.
+
+#### Escenario: Alta sin MAC
+
+- DADO que hay nombre e IP, y la MAC está vacía
+- CUANDO el usuario confirma
+- ENTONCES el id es `ip` + la IP sin puntos
+
+#### Escenario: Máscara automática al escribir
+
+- DADO que el diálogo de alta manual está abierto
+- CUANDO el usuario escribe `192168168106` en IP y `80A036B19373` en MAC
+- ENTONCES se muestran `192.168.168.106` y `80:A0:36:B1:93:73`, sin admitir más de 12 dígitos/12 hex
+
+## Anotaciones
+
+- **Cadenas en español codificadas (congeladas):** 16 cadenas del asistente se saltan los recursos; violación de regla, corrección diferida.
+- **Código muerto — no especificado:** seguimiento de endpoints de `PairingServer`; `SengledCrypto.decryptPayload`.
+- **Desvío respecto al README:** los comentarios sobre reintentos son aproximados; el código es la fuente de verdad.
+- **No hay conjunto de pruebas:** `testDebugUnitTest` NO-SOURCE; solo `lint`.
+- **Identidad del foco (dos interfaces):** el BSSID del AP del foco y su MAC LAN pueden diferir en el último byte (verificado en dispositivo: BSSID `...93:74`, MAC LAN `...93:73`). La MAC LAN reportada por `search_devices` es la fuente de verdad para id/nombre y para reencontrar el foco.
+- **Fuera de alcance:** `SengledTools/` (en .gitignore).

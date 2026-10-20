@@ -14,12 +14,15 @@
     <string name="rename_save">Save</string>
     <string name="rename_cancel">Cancel</string>
 
-    <string name="edit_ip_title">Edit bulb IP</string>
-    <string name="edit_ip_save">Save IP</string>
-    <string name="edit_ip_hint">The bulb \'%1$s\' IP is: %2$s.\n\nIf the IP changed (the router assigns it automatically), enter the new IP you see in the router so the app keeps finding the bulb.</string>
+    <!-- Edit connection (IP + MAC) -->
+    <string name="edit_connection_title">Edit bulb connection</string>
+    <string name="edit_connection_label_ip">IP address</string>
+    <string name="edit_connection_label_mac">MAC address</string>
+    <string name="edit_connection_error_ip">Enter a valid IP address (4 octets, 0–255)</string>
+    <string name="edit_connection_error_mac">Enter 6 hex byte pairs, or leave empty</string>
 
     <string name="content_desc_rename">Rename bulb</string>
-    <string name="content_desc_edit_ip">Edit bulb IP</string>
+    <string name="content_desc_edit_connection">Edit bulb IP and MAC</string>
     <string name="content_desc_refresh">Refresh bulb status</string>
     <string name="content_desc_schedule">Set schedule</string>
 
