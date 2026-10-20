@@ -1,64 +1,64 @@
-# Notifications Specification
+# Notificaciones (Especificación)
 
-## Purpose
+## Propósito
 
-Baseline (current behavior) of all notifications: the shared persistent one (`MqttBrokerService`, `RoutineService`) and routine event announcements (`RoutineService` channels, `MainActivity` permission guard). Regression reference only.
+Línea base (comportamiento actual) de todas las notificaciones: la notificación persistente compartida (`MqttBrokerService`, `RoutineService`) y los avisos de eventos de rutina (canales de `RoutineService`, comprobación de permiso en `MainActivity`). Solo como referencia para regresiones.
 
-## Requirements
+## Requisitos
 
-### Requirement: Single Shared Persistent Notification With Id 1
+### Requisito: Una única notificación persistente compartida con id 1
 
-The system SHALL show exactly one ongoing notification on channel `rutinas` ("Rutinas", IMPORTANCE_DEFAULT) with notification id 1, shared by `RoutineService` and `MqttBrokerService`; whichever service calls `startForeground`/`notify(1, …)` last SHALL win the content. The notification SHALL be `setOngoing(true)` and `setOnlyAlertOnce(true)`.
+El sistema DEBERÁ mostrar exactamente una notificación en curso en el canal `rutinas` ("Rutinas", IMPORTANCE_DEFAULT) con id de notificación 1, compartida por `RoutineService` y `MqttBrokerService`; el servicio que llame a `startForeground`/`notify(1, …)` en último lugar DEBERÁ establecer el contenido. La notificación DEBERÁ tener `setOngoing(true)` y `setOnlyAlertOnce(true)`.
 
-#### Scenario: Broker starts after routines
+#### Escenario: El broker se inicia después de las rutinas
 
-- GIVEN `RoutineService` posted id 1
-- WHEN `MqttBrokerService` posts id 1
-- THEN the bar shows the broker text and only one ongoing notification exists
+- DADO que `RoutineService` publicó la notificación con id 1
+- CUANDO `MqttBrokerService` publica la notificación con id 1
+- ENTONCES la barra muestra el texto del broker y solo existe una notificación en curso
 
-#### Scenario: Routine status refresh
+#### Escenario: Actualización del estado de las rutinas
 
-- GIVEN the broker posted id 1
-- WHEN `RoutineService` refreshes its status notification
-- THEN the bar content switches back to the routine text
+- DADO que el broker publicó la notificación con id 1
+- CUANDO `RoutineService` actualiza su notificación de estado
+- ENTONCES el contenido de la barra vuelve al texto de las rutinas
 
-### Requirement: Persistent Notification Content Per Owner
+### Requisito: Contenido de la notificación persistente por propietario
 
-`RoutineService`'s persistent content SHALL be generic text or the next-event time (30-minute reveal). `MqttBrokerService`'s content SHALL state that the local broker is active.
+El contenido persistente de `RoutineService` DEBERÁ ser un texto genérico o la hora del siguiente evento (revelación de 30 minutos). El contenido de `MqttBrokerService` DEBERÁ indicar que el broker local está activo.
 
-#### Scenario: Next event within 30 minutes
+#### Escenario: Siguiente evento dentro de 30 minutos
 
-- GIVEN a routine event is 10 minutes away
-- WHEN the status notification updates
-- THEN it shows "Próxima a las {time}"
+- DADO que un evento de rutina está a 10 minutos
+- CUANDO se actualiza la notificación de estado
+- ENTONCES muestra "Próxima a las {time}"
 
-### Requirement: Temporary Event Announcements on a Separate Channel
+### Requisito: Avisos temporales de eventos en un canal separado
 
-Routine events SHALL post auto-cancel announcements on channel `rutinas_aviso` ("Avisos de rutina", IMPORTANCE_HIGH) with ids from `1000 + counter`, the counter persisted in `event_notification_id` and incremented per event (each event gets a distinct id), `DEFAULT_ALL` sound, staggered 400 ms per bulb, and SHALL be posted only when the UDP command succeeded.
+Los eventos de rutina DEBERÁN publicar avisos de cancelación automática en el canal `rutinas_aviso` ("Avisos de rutina", IMPORTANCE_HIGH) con ids a partir de `1000 + contador`, siendo el contador persistente en `event_notification_id` e incrementado por evento (cada evento recibe un id distinto), con sonido `DEFAULT_ALL`, espaciados 400 ms por foco, y DEBERÁN publicarse únicamente cuando el comando UDP haya tenido éxito.
 
-#### Scenario: Two bulbs fire ON
+#### Escenario: Dos focos ejecutan ON
 
-- GIVEN two routines fire in the same tick
-- WHEN both UDP commands succeed
-- THEN two distinct notifications post (distinct incremented ids) 400 ms apart
+- DADO que dos rutinas se ejecutan en el mismo tick
+- CUANDO ambos comandos UDP tienen éxito
+- ENTONCES se publican dos notificaciones distintas (con ids incrementados distintos) separadas por 400 ms
 
-#### Scenario: UDP failure suppresses the announcement
+#### Escenario: Fallo de UDP suprime el aviso
 
-- GIVEN the ON command failed
-- WHEN firing completes
-- THEN no event announcement is posted
+- DADO que el comando ON falló
+- CUANDO finaliza la ejecución
+- ENTONCES no se publica ningún aviso de evento
 
-### Requirement: Notification Permission Guard
+### Requisito: Comprobación del permiso de notificaciones
 
-When app notifications are disabled, `MainActivity` SHALL show an indefinite Snackbar whose action opens app notification settings, with a fallback to app-details settings.
+Cuando las notificaciones de la aplicación están deshabilitadas, `MainActivity` DEBERÁ mostrar un Snackbar indefinido cuya acción abra los ajustes de notificaciones de la aplicación, con alternativa a los ajustes de la aplicación.
 
-#### Scenario: Notifications disabled
+#### Escenario: Notificaciones deshabilitadas
 
-- GIVEN the app's notifications are blocked
-- WHEN `MainActivity` runs diagnostics
-- THEN an indefinite Snackbar appears with a settings action
+- DADO que las notificaciones de la aplicación están bloqueadas
+- CUANDO `MainActivity` ejecuta diagnósticos
+- ENTONCES aparece un Snackbar indefinido con una acción para abrir ajustes
 
-## Annotations
+## Anotaciones
 
-- **Shared id 1 (frozen, fragile):** two foreground services deliberately share channel `rutinas` and id 1, so content is last-writer-wins and the phone shows a single bar (see `MqttBrokerService` doc comment). A future third foreground service would inherit this order-dependent behavior (exploration risk, not fixed here).
-- **No test suite:** `testDebugUnitTest` runs NO-SOURCE; scenarios are review-verified only.
+- **Id 1 compartido (congelado, frágil):** dos servicios en primer plano comparten deliberadamente el canal `rutinas` y el id 1, por lo que el contenido es el último en escribirlo y el teléfono muestra una única barra (véase comentario en `MqttBrokerService`). Un tercer servicio en primer plano futuro heredaría este comportamiento dependiente del orden (riesgo de exploración, no corregido aquí).
+- **No hay conjunto de pruebas:** `testDebugUnitTest` NO-SOURCE; los escenarios se verificaron por revisión.

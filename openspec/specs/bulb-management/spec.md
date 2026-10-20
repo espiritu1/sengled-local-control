@@ -1,118 +1,118 @@
-# Bulb Management Specification
+# Gestión de focos (Especificación)
 
-## Purpose
+## Propósito
 
-Baseline (current behavior) of `BulbRegistry`, the `Bulb` model, and the list operations in `MainActivity`/`BulbAdapter`. Regression reference only.
+Línea base (comportamiento actual) de `BulbRegistry`, el modelo `Bulb` y las operaciones de lista en `MainActivity`/`BulbAdapter`. Solo como referencia para regresiones.
 
-## Requirements
+## Requisitos
 
-### Requirement: Bulb Model (Observed)
+### Requisito: Modelo Bulb (observado)
 
-The `Bulb` data class SHALL be observed as defined: `data class Bulb(id, name, ip, brightness=1, isOn=false, connected=null)`, with the fields and defaults as specified.
+La data class `Bulb` DEBERÁ observarse tal como se define: `data class Bulb(id, name, ip, brightness=1, isOn=false, connected=null)`, con los campos y valores predeterminados especificados.
 
-### Requirement: SharedPreferences-Only Storage
+### Requisito: Almacenamiento exclusivamente en SharedPreferences
 
-Bulbs SHALL live only in SharedPreferences file `sengled_bulbs`: a JSON array under `bulbs_json` (`id`, `name`, `ip` per entry) plus MACs as separate `mac_<id>` keys in the same file. There SHALL be no hardcoded defaults; `loadPaired` SHALL return `emptyList()` on any parse error.
+Los focos DEBERÁN almacenarse únicamente en el archivo SharedPreferences `sengled_bulbs`: un array JSON bajo `bulbs_json` (`id`, `name`, `ip` por entrada) junto con las MAC como claves separadas `mac_<id>` en el mismo archivo. NO DEBERÁ haber valores predeterminados codificados; `loadPaired` DEBERÁ devolver `emptyList()` ante cualquier error de análisis.
 
-#### Scenario: Corrupt JSON
+#### Escenario: JSON corrupto
 
-- GIVEN `bulbs_json` fails to parse
-- WHEN `loadPaired` runs
-- THEN an empty list is returned and the app starts with no bulbs
+- DADO que `bulbs_json` no se puede analizar
+- CUANDO se ejecuta `loadPaired`
+- ENTONCES se devuelve una lista vacía y la aplicación se inicia sin focos
 
-#### Scenario: MAC round-trip
+#### Escenario: Retorno de MAC
 
-- GIVEN a bulb was stored with a MAC
-- WHEN `getMac(id)` is called
-- THEN the stored MAC is returned
+- DADO que un foco se guardó con una MAC
+- CUANDO se llama a `getMac(id)`
+- ENTONCES se devuelve la MAC guardada
 
-### Requirement: Registry API Semantics
+### Requisito: Semántica de la API de BulbRegistry
 
-`BulbRegistry` SHALL expose `getBulbs`, `addBulb` (upsert by id), `updateBulbIp`, `removeBulb`, `reorderBulbs` (caller passes the full order; unknown ids are dropped and unlisted bulbs are kept at the end — defensive), and `getMac`.
+`BulbRegistry` DEBERÁ exponer `getBulbs`, `addBulb` (upsert por id), `updateBulbIp`, `removeBulb`, `reorderBulbs` (quien llama pasa el orden completo; los id desconocidos se descartan y los focos no listados se mantienen al final — defensivo) y `getMac`.
 
-#### Scenario: Reorder with unknown id
+#### Escenario: Reordenar con id desconocido
 
-- GIVEN the requested order contains an id not in storage
-- WHEN `reorderBulbs` runs
-- THEN the unknown id is dropped and existing unlisted bulbs are appended at the end
+- DADO que el orden solicitado contiene un id que no existe en el almacenamiento
+- CUANDO se ejecuta `reorderBulbs`
+- ENTONCES el id desconocido se descarta y los focos existentes no listados se añaden al final
 
-### Requirement: Rename Overlay Wins Over Registry
+### Requisito: La superposición de renombrado tiene prioridad sobre el registro
 
-Renames SHALL NOT be written to `BulbRegistry`; they SHALL go to `sengled_prefs` as `name_<id>` (overlay). `MainActivity` SHALL overlay it on load, and `ScheduleManager.getBulbName` SHALL prefer the overlay. The registry's `name` SHALL stay at its original value forever.
+Los renombrados NO DEBERÁN escribirse en `BulbRegistry`; DEBERÁN guardarse en `sengled_prefs` como `name_<id>` (superposición). `MainActivity` DEBERÁ aplicar esta superposición al cargar, y `ScheduleManager.getBulbName` DEBERÁ preferir la superposición. El `name` del registro DEBERÁ permanecer con su valor original para siempre.
 
-#### Scenario: Rename a paired bulb
+#### Escenario: Renombrar un foco vinculado
 
-- GIVEN a bulb named "Foco 1a2b3c" in the registry
-- WHEN the user renames it to "Escritorio"
-- THEN display uses "Escritorio" from `sengled_prefs` while `bulbs_json` still says "Foco 1a2b3c"
+- DADO que un foco se llama "Foco 1a2b3c" en el registro
+- CUANDO el usuario lo renombra a "Escritorio"
+- ENTONCES la visualización usa "Escritorio" de `sengled_prefs` mientras que `bulbs_json` sigue diciendo "Foco 1a2b3c"
 
-#### Scenario: Overlay vs registry precedence
+#### Escenario: Prioridad entre superposición y registro
 
-- GIVEN both stores hold a name for the same id
-- WHEN the name is displayed anywhere
-- THEN the `sengled_prefs` overlay wins
+- DADO que ambos almacenes contienen un nombre para el mismo id
+- CUANDO se muestra el nombre en cualquier lugar
+- ENTONCES la superposición de `sengled_prefs` tiene prioridad
 
-### Requirement: List Operations (Rename)
+### Requisito: Operaciones de lista (renombrar)
 
-The list SHALL support rename with max 40 chars.
+La lista DEBERÁ admitir renombrar con un máximo de 40 caracteres.
 
-#### Scenario: Rename with 40-char cap
+#### Escenario: Renombrar con límite de 40 caracteres
 
-- GIVEN a paired bulb shown in the list
-- WHEN the user saves a new name in the rename dialog
-- THEN input is capped at 40 characters, a non-empty trimmed name is written as `name_<id>` in `sengled_prefs`, and `sengled_bulbs` keeps the original name
+- DADO que un foco vinculado se muestra en la lista
+- CUANDO el usuario guarda un nuevo nombre en el diálogo de renombrado
+- ENTONCES la entrada se limita a 40 caracteres, un nombre recortado no vacío se escribe como `name_<id>` en `sengled_prefs`, y `sengled_bulbs` conserva el nombre original
 
-### Requirement: List Operations (Edit IP)
+### Requisito: Operaciones de lista (editar IP)
 
-The list SHALL support editing the bulb IP.
+La lista DEBERÁ admitir editar la IP del foco.
 
-#### Scenario: Edit IP persists to the registry
+#### Escenario: La edición de IP se guarda en el registro
 
-- GIVEN a paired bulb with a stored IP
-- WHEN the user saves a non-empty IP in the edit-IP dialog
-- THEN `BulbRegistry.updateBulbIp` rewrites the bulb's `ip` in `bulbs_json` (`sengled_bulbs`) and the in-memory card shows the new IP
+- DADO que un foco vinculado tiene una IP guardada
+- CUANDO el usuario guarda una IP no vacía en el diálogo de edición de IP
+- ENTONCES `BulbRegistry.updateBulbIp` reescribe la `ip` del foco en `bulbs_json` (`sengled_bulbs`) y la tarjeta en memoria muestra la nueva IP
 
-### Requirement: List Operations (Delete)
+### Requisito: Operaciones de lista (eliminar)
 
-The list SHALL support delete with a confirm dialog; deleting a bulb SHALL also reset its routine via `ScheduleManager.save(..., false, 0, 0, 1)`.
+La lista DEBERÁ admitir eliminar con un diálogo de confirmación; al eliminar un foco, TAMBIÉN DEBERÁ restablecerse su rutina mediante `ScheduleManager.save(..., false, 0, 0, 1)`.
 
-#### Scenario: Delete a bulb with a routine
+#### Escenario: Eliminar un foco con una rutina
 
-- GIVEN a bulb with an enabled routine
-- WHEN the user confirms deletion
-- THEN the bulb is removed and its routine is reset to disabled defaults
+- DADO que un foco tiene una rutina habilitada
+- CUANDO el usuario confirma la eliminación
+- ENTONCES el foco se elimina y su rutina se restablece a los valores predeterminados deshabilitados
 
-### Requirement: List Operations (Drag-and-Drop Reorder)
+### Requisito: Operaciones de lista (reordenar por arrastre)
 
-The list SHALL support drag-and-drop reorder (long-press starts drag; on drop `reorderBulbs` persists and the in-memory `bulbs` list is reordered to match; while dragging the card is highlighted `card_background_active`, elevated, and its slider/switch are disabled).
+La lista DEBERÁ admitir reordenar por arrastre (mantener pulsado inicia el arrastre; al soltar, `reorderBulbs` guarda y la lista `bulbs` en memoria se reordena para coincidir; mientras se arrastra, la tarjeta se destaca con `card_background_active`, se eleva y su deslizador/interruptor se desactivan).
 
-#### Scenario: Drag in progress
+#### Escenario: Arrastre en curso
 
-- GIVEN a card is being dragged
-- WHEN the user holds it mid-drag
-- THEN that card's slider and switch are disabled and the card is highlighted
+- DADO que una tarjeta se está arrastrando
+- CUANDO el usuario la mantiene en arrastre
+- ENTONCES el deslizador y el interruptor de esa tarjeta se desactivan y la tarjeta se destaca
 
-### Requirement: List Operations (Schedule Editor)
+### Requisito: Operaciones de lista (editor de horarios)
 
-The list SHALL support opening the schedule editor.
+La lista DEBERÁ admitir abrir el editor de horarios.
 
-#### Scenario: Open the routine dialog
+#### Escenario: Abrir el diálogo de rutina
 
-- GIVEN a bulb card in the list
-- WHEN the user taps the schedule button
-- THEN `RoutineDialog` opens prefilled with the bulb's current routine from `ScheduleManager.getRoutine`, and saving calls `ScheduleManager.save`
+- DADO que una tarjeta de foco está en la lista
+- CUANDO el usuario toca el botón de horario
+- ENTONCES `RoutineDialog` se abre con la rutina actual del foco precargada desde `ScheduleManager.getRoutine`, y al guardar se llama a `ScheduleManager.save`
 
-### Requirement: Resume Synchronization
+### Requisito: Sincronización al reanudar
 
-`onResume` SHALL run `reloadBulbs()` to synchronize the adapter with the registry (add newly added bulbs, remove deleted ones), covering bulbs added by the wizard.
+`onResume` DEBERÁ ejecutar `reloadBulbs()` para sincronizar el adaptador con el registro (añadir focos nuevos, eliminar focos borrados), cubriendo los focos añadidos por el asistente.
 
-#### Scenario: Bulb added by wizard
+#### Escenario: Foco añadido por el asistente
 
-- GIVEN a bulb was saved by the pairing wizard while `MainActivity` was paused
-- WHEN `MainActivity` resumes
-- THEN the new bulb appears in the list without a manual refresh
+- DADO que un foco fue guardado por el asistente de vinculación mientras `MainActivity` estaba en pausa
+- CUANDO `MainActivity` se reanuda
+- ENTONCES el nuevo foco aparece en la lista sin necesidad de actualizar manualmente
 
-## Annotations
+## Anotaciones
 
-- **Duplicate prefs (frozen):** two stores for names — `sengled_bulbs` (registry, stale after rename) vs `sengled_prefs` `name_<id>` (overlay, authoritative). Spec states overlay wins; unification is a deferred fix candidate (proposal mitigation).
-- **README drift:** README claims IPs are "defined in BulbRegistry.kt"; runtime truth is SharedPreferences. Code is truth.
+- **Preferencias duplicadas (congeladas):** dos almacenes para nombres — `sengled_bulbs` (registro, obsoleto tras renombrar) vs `sengled_prefs` `name_<id>` (superposición, autoritativo). La especificación establece que la superposición tiene prioridad; la unificación es una corrección diferida (mitigación propuesta).
+- **Desvío respecto al README:** el README afirma que las IP están "definidas en BulbRegistry.kt"; en tiempo de ejecución las IP están en SharedPreferences. El código es la fuente de verdad.

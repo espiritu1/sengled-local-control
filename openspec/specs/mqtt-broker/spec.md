@@ -1,74 +1,74 @@
-# MQTT Broker Specification
+# Broker MQTT (Especificación)
 
-## Purpose
+## Propósito
 
-Baseline (current behavior) of the hand-rolled embedded broker (`MqttBroker`, `MqttBrokerService`, `SslCertGenerator`) and its foreground-service lifecycle. Regression reference only.
+Línea base (comportamiento actual) del broker embebido implementado manualmente (`MqttBroker`, `MqttBrokerService`, `SslCertGenerator`) y su ciclo de vida como servicio en primer plano. Solo como referencia para regresiones.
 
-## Requirements
+## Requisitos
 
-### Requirement: MQTT 3.1.1 Subset Broker
+### Requisito: Broker con subconjunto MQTT 3.1.1
 
-The broker SHALL implement, without any library: CONNECT→CONNACK, SUBSCRIBE→SUBACK (granting QoS 0 for every topic), PUBLISH→PUBACK for QoS 1 (payload logged only), PINGREQ→PINGRESP, UNSUBSCRIBE→UNSUBACK, and DISCONNECT→close. It SHALL enforce a 30 s idle socket timeout and a 64 KB packet cap, and SHALL track connected clients in a `ConcurrentHashMap` keyed by clientId.
+El broker DEBERÁ implementar, sin ninguna librería: CONNECT→CONNACK, SUBSCRIBE→SUBACK (concesión de QoS 0 para todos los temas), PUBLISH→PUBACK para QoS 1 (solo se registra el payload), PINGREQ→PINGRESP, UNSUBSCRIBE→UNSUBACK y DISCONNECT→close. DEBERÁ aplicar un tiempo de espera de 30 s para sockets inactivos y un límite de 64 KB por paquete, y DEBERÁ seguir el rastro de clientes conectados en un `ConcurrentHashMap` indexado por clientId.
 
-#### Scenario: Subscribe with QoS 1 request
+#### Escenario: Suscripción con solicitud QoS 1
 
-- GIVEN a connected client
-- WHEN it SUBSCRIBEs to a topic
-- THEN SUBACK grants QoS 0 regardless of the requested QoS
+- DADO que un cliente está conectado
+- CUANDO se suscribe a un tema
+- ENTONCES SUBACK concede QoS 0 independientemente del QoS solicitado
 
-#### Scenario: Idle connection
+#### Escenario: Conexión inactiva
 
-- GIVEN a client with no traffic for 30 s
-- WHEN the timeout elapses
-- THEN the socket is closed
+- DADO que un cliente no tiene tráfico durante 30 s
+- CUANDO expira el tiempo de espera
+- ENTONCES el socket se cierra
 
-### Requirement: TLS Listener on Port 8883
+### Requisito: Escucha TLS en el puerto 8883
 
-At every broker start the system SHALL generate a fresh self-signed RSA-2048 certificate (CN=`SengledLocalBroker`, 1-year validity, CA and server combined) and build an `SSLContext` negotiated as "TLS" → TLS 1.2 (ESP8266 mbedtls requirement). BouncyCastle SHALL build the X.509 structures while platform/Conscrypt providers SHALL sign (BouncyCastle `SHA256withRSA` is unavailable on Android P+ and MUST NOT be requested).
+En cada arranque del broker, el sistema DEBERÁ generar un certificado autofirmado RSA-2048 nuevo (CN=`SengledLocalBroker`, validez de 1 año, CA y servidor combinados) y construir un `SSLContext` negociado como "TLS" → TLS 1.2 (requisito de mbedtls en ESP8266). BouncyCastle DEBERÁ construir las estructuras X.509 mientras que los proveedores de plataforma/Conscrypt DEBERÁN firmar (BouncyCastle `SHA256withRSA` no está disponible en Android P+ y NO DEBERÁ solicitarse).
 
-#### Scenario: Broker restart
+#### Escenario: Reinicio del broker
 
-- GIVEN the broker restarts
-- WHEN TLS setup runs
-- THEN a new certificate is generated and the listener accepts TLS 1.2 on 8883
+- DADO que el broker se reinicia
+- CUANDO se configura TLS
+- ENTONCES se genera un nuevo certificado y el escuchador acepta TLS 1.2 en el puerto 8883
 
-### Requirement: Reference-Counted Start and Stop
+### Requisito: Inicio y detención con conteo de referencias
 
-The broker SHALL start on the first `MqttBroker.acquire()` and stop on the last `release()`. `MqttBrokerService` SHALL acquire one reference in `onCreate` and SHALL stop itself if acquisition fails. The pairing wizard's transient second reference SHALL be released only when actually acquired (`mqttAcquired` guard).
+El broker DEBERÁ iniciarse en la primera llamada a `MqttBroker.acquire()` y detenerse en la última llamada a `release()`. `MqttBrokerService` DEBERÁ adquirir una referencia en `onCreate` y DEBERÁ detenerse si la adquisición falla. La segunda referencia transitoria del asistente de vinculación DEBERÁ liberarse solo si fue realmente adquirida (protección `mqttAcquired`).
 
-#### Scenario: Service and wizard both hold a reference
+#### Escenario: Servicio y asistente mantienen referencias
 
-- GIVEN the service holds one reference
-- WHEN step 3 acquires and later releases its transient reference
-- THEN the broker keeps running because the service reference remains
+- DADO que el servicio mantiene una referencia
+- CUANDO el paso 3 adquiere y posteriormente libera su referencia transitoria
+- ENTONCES el broker sigue ejecutándose porque la referencia del servicio permanece
 
-#### Scenario: Acquisition fails
+#### Escenario: Fallo en la adquisición
 
-- GIVEN `acquire()` returns failure in `onCreate`
-- WHEN the service handles it
-- THEN the service stops itself
+- DADO que `acquire()` devuelve fallo en `onCreate`
+- CUANDO el servicio lo gestiona
+- ENTONCES el servicio se detiene a sí mismo
 
-### Requirement: Foreground Service Lifecycle
+### Requisito: Ciclo de vida del servicio en primer plano
 
-`MqttBrokerService` SHALL be a `specialUse` foreground service (`smart_home_light_mqtt_broker`) started from `MainActivity.onCreate` AND on boot via `ScheduleReceiver`.
+`MqttBrokerService` DEBERÁ ser un servicio en primer plano de tipo `specialUse` (`smart_home_light_mqtt_broker`), iniciado desde `MainActivity.onCreate` Y en el arranque del dispositivo mediante `ScheduleReceiver`.
 
-#### Scenario: Device reboot
+#### Escenario: Reinicio del dispositivo
 
-- GIVEN the device boots
-- WHEN `ScheduleReceiver` runs
-- THEN the broker service is started again
+- DADO que el dispositivo se reinicia
+- CUANDO se ejecuta `ScheduleReceiver`
+- ENTONCES el servicio del broker se inicia de nuevo
 
-### Requirement: Persistent Availability Because Bulbs Blink Without It
+### Requisito: Disponibilidad persistente (los focos parpadean si no está disponible)
 
-The broker SHALL remain running persistently: paired ESP8266 bulbs blink indefinitely when the HTTP verification endpoints on port 57542 (served by `PairingServer`) are unreachable for the bulb (the firmware uses these endpoints to verify/obtain the broker address), and specifically when the configured broker at `lanIp:8883` is unreachable (firmware requirement).
+El broker DEBERÁ mantenerse en ejecución de forma persistente: los focos ESP8266 vinculados parpadean indefinidamente cuando los endpoints HTTP de verificación en el puerto 57542 (atendidos por `PairingServer`) no son accesibles para el foco (el firmware usa estos endpoints para verificar/obtener la dirección del broker), y específicamente cuando el broker configurado en `lanIp:8883` no es accesible (requisito del firmware).
 
-#### Scenario: Broker unreachable
+#### Escenario: Broker inaccesible
 
-- GIVEN the broker is stopped while bulbs are paired
-- WHEN bulbs lose the broker
-- THEN they blink indefinitely — this is firmware behavior, not app behavior
+- DADO que el broker se detiene mientras hay focos vinculados
+- CUANDO los focos pierden la conexión con el broker
+- ENTONCES parpadean indefinidamente — este es un comportamiento del firmware, no de la aplicación
 
-## Annotations
+## Anotaciones
 
-- **Shared notification id:** the service's persistent notification (id 1, channel `rutinas`) is shared with `RoutineService` — last `notify` wins; specified fully in the `notifications` domain.
-- **Fragility note:** the shared id 1 is order-dependent; adding a third foreground service in a future change would inherit this behavior (proposal risk, not fixed here).
+- **Id de notificación compartido:** la notificación persistente del servicio (id 1, canal `rutinas`) se comparte con `RoutineService` — la última llamada a `notify` prevalece; se especifica completamente en el dominio `notifications`.
+- **Nota de fragilidad:** el id 1 compartido depende del orden; si se añadiera un tercer servicio en primer plano en un cambio futuro, heredaría este comportamiento (riesgo del diseño, no corregido aquí).

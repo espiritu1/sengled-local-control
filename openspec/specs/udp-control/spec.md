@@ -1,84 +1,84 @@
-# UDP Control Specification
+# Control UDP (Especificación)
 
-## Purpose
+## Propósito
 
-Baseline (current behavior) of port-9080 JSON control in `UdpClient.kt`, consumed by `MainActivity` and `RoutineService`. Regression reference only.
+Línea base (comportamiento actual) del control JSON por puerto 9080 en `UdpClient.kt`, utilizado por `MainActivity` y `RoutineService`. Solo como referencia para regresiones.
 
-## Requirements
+## Requisitos
 
-### Requirement: Control Protocol on Port 9080
+### Requisito: Protocolo de control en el puerto 9080
 
-The system SHALL issue JSON commands over UTF-8 UDP on port 9080 with a 1500 ms per-request timeout: `set_device_switch` (param `switch` 1/0), `set_device_brightness` (clamped 0..100), `get_device_brightness` (reply `{"result":{"ret":0,"brightness":NN}}`), and `search_devices` (discovery, via `WifiDetector`).
+El sistema DEBERÁ emitir comandos JSON por UDP UTF-8 en el puerto 9080 con un tiempo de espera de 1500 ms por solicitud: `set_device_switch` (parámetro `switch` 1/0), `set_device_brightness` (limitado a 0..100), `get_device_brightness` (respuesta `{"result":{"ret":0,"brightness":NN}}`) y `search_devices` (detección, a través de `WifiDetector`).
 
-#### Scenario: Set brightness
+#### Escenario: Establecer brillo
 
-- GIVEN a reachable bulb
-- WHEN the app sends `set_device_brightness` with 42
-- THEN the command is clamped to 0..100 and acknowledged within 1500 ms
+- DADO que un foco está accesible
+- CUANDO la aplicación envía `set_device_brightness` con 42
+- ENTONCES el comando se limita a 0..100 y se recibe confirmación dentro de 1500 ms
 
-#### Scenario: Command timeout
+#### Escenario: Tiempo de espera agotado
 
-- GIVEN a bulb that does not reply
-- WHEN a command is sent
-- THEN the operation ends after 1500 ms without a reply
+- DADO que un foco no responde
+- CUANDO se envía un comando
+- ENTONCES la operación termina tras 1500 ms sin respuesta
 
-### Requirement: Per-Operation Scoped Sockets
+### Requisito: Sockets con ámbito por operación
 
-Control commands issued by `MainActivity` and `RoutineService` SHALL use a scoped `UdpClient().use { ... }` socket. `UdpClient` is NOT thread-safe (one `DatagramSocket` per instance) and sockets SHALL never be shared across concurrent queries, because UDP replies carry no source tag and a shared socket would mix up per-bulb state.
+Los comandos de control emitidos por `MainActivity` y `RoutineService` DEBERÁN usar un socket con ámbito `UdpClient().use { ... }`. `UdpClient` NO es thread-safe (un `DatagramSocket` por instancia) y los sockets NUNCA DEBERÁN compartirse entre consultas concurrentes, ya que las respuestas UDP no llevan etiqueta de origen y un socket compartido mezclaría el estado por foco.
 
-#### Scenario: Parallel queries to two bulbs
+#### Escenario: Consultas paralelas a dos focos
 
-- GIVEN two bulb queries running concurrently
-- WHEN each wraps its work in `UdpClient().use { ... }`
-- THEN each operation reads only its own reply
+- DADO que dos consultas a focos se ejecutan en paralelo
+- CUANDO cada una envuelve su trabajo en `UdpClient().use { ... }`
+- ENTONCES cada operación lee únicamente su propia respuesta
 
-### Requirement: Network I/O Off the Main Thread
+### Requisito: E/S de red fuera del hilo principal
 
-`MainActivity` SHALL run all network work on an `Executors.newFixedThreadPool(2)`; view updates SHALL go through `runOnUiThread`.
+`MainActivity` DEBERÁ ejecutar todo el trabajo de red en un `Executors.newFixedThreadPool(2)`; las actualizaciones de la interfaz DEBERÁN hacerse mediante `runOnUiThread`.
 
-#### Scenario: UDP reply arrives
+#### Escenario: Llegada de respuesta UDP
 
-- GIVEN a control command completed on the executor
-- WHEN the result updates the UI
-- THEN the update runs via `runOnUiThread`, never on the network thread
+- DADO que un comando de control finalizó en el executor
+- CUANDO el resultado actualiza la interfaz
+- ENTONCES la actualización se ejecuta mediante `runOnUiThread`, nunca en el hilo de red
 
-### Requirement: Power State Displayed From Memory, Not UDP
+### Requisito: Estado de encendido mostrado desde memoria, no desde UDP
 
-The system SHALL NOT query the switch state over UDP (only latent brightness is reported — a powered-off bulb keeps reporting its last brightness). `UdpClient.getState` SHALL derive heuristic `on = brightness > 1`; the displayed state SHALL prefer `ScheduleManager.getLastPower(id)` (`rememberedOn ?: finalState.on`), which returns `null` — not `false` — when never set. Every user toggle and slider change SHALL write `setLastPower`/`setLastBrightness`.
+El sistema NO DEBERÁ consultar el estado del interruptor por UDP (solo se informa el brillo latente: un foco apagado sigue informando su último brillo). `UdpClient.getState` DEBERÁ derivar la heurística `on = brightness > 1`; el estado mostrado DEBERÁ preferir `ScheduleManager.getLastPower(id)` (`rememberedOn ?: finalState.on`), que devuelve `null` — no `false` — cuando nunca se ha establecido. Cada cambio de interruptor o deslizador por parte del usuario DEBERÁ escribir `setLastPower`/`setLastBrightness`.
 
-#### Scenario: First-ever display
+#### Escenario: Primera visualización
 
-- GIVEN no `last_power` was ever stored for the bulb
-- WHEN refresh completes
-- THEN the display falls back to the brightness heuristic (`brightness > 1`)
+- DADO que nunca se ha guardado `last_power` para el foco
+- CUANDO finaliza la actualización
+- ENTONCES la visualización recurre a la heurística del brillo (`brightness > 1`)
 
-#### Scenario: Remembered off beats brightness
+#### Escenario: Estado apagado recordado prevalece sobre el brillo
 
-- GIVEN the user last set the bulb off but brightness is 80
-- WHEN refresh completes
-- THEN the UI shows off because `getLastPower` takes precedence
+- DADO que el usuario apagó el foco por última vez, pero el brillo es 80
+- CUANDO finaliza la actualización
+- ENTONCES la interfaz muestra apagado porque `getLastPower` tiene prioridad
 
-### Requirement: Brightness Slider Semantics
+### Requisito: Semántica del deslizador de brillo
 
-The SeekBar max of 99 SHALL map to brightness 1..100 (1 = dimmest, never 0 — only the switch turns a bulb off). A slider change SHALL imply on (`isOn = value > 0`) and write `last_power`. Slider input SHALL be debounced 250 ms (`BulbAdapter.BRIGHTNESS_DEBOUNCE_MS`); switch and SeekBar SHALL be disabled while a card is dragged and while `connected == false`.
+El SeekBar con máximo 99 DEBERÁ mapearse a brillo 1..100 (1 = mínimo brillo, nunca 0 — solo el interruptor apaga el foco). Un cambio en el deslizador DEBERÁ implicar encendido (`isOn = value > 0`) y escribir `last_power`. La entrada del deslizador DEBERÁ tener un retardo de rebote de 250 ms (`BulbAdapter.BRIGHTNESS_DEBOUNCE_MS`); el interruptor y el SeekBar DEBERÁN desactivarse mientras una tarjeta se arrastra y mientras `connected == false`.
 
-#### Scenario: Slider at minimum
+#### Escenario: Deslizador en posición mínima
 
-- GIVEN the slider is moved to its lowest position
-- WHEN the value is applied
-- THEN brightness becomes 1 (not 0) and `last_power` is written as on
+- DADO que el deslizador se mueve a su posición más baja
+- CUANDO se aplica el valor
+- ENTONCES el brillo pasa a 1 (no 0) y se escribe `last_power` como encendido
 
-### Requirement: Optimistic UI With Deferred Confirmation
+### Requisito: Interfaz optimista con confirmación diferida
 
-Switch and slider updates SHALL render immediately with `connected = null` ("checking") and settle to `true`/`false` when the UDP acknowledgement arrives.
+Las actualizaciones del interruptor y del deslizador DEBERÁN mostrarse inmediatamente con `connected = null` ("checking") y ajustarse a `true`/`false` cuando llegue la confirmación UDP.
 
-#### Scenario: Toggle a bulb
+#### Escenario: Alternar un foco
 
-- GIVEN an on-screen switch is toggled
-- WHEN the command is queued
-- THEN the UI shows the new state with "checking" until the ack settles it
+- DADO que se alterna el interruptor en pantalla
+- CUANDO el comando se pone en cola
+- ENTONCES la interfaz muestra el nuevo estado con "checking" hasta que la confirmación lo resuelva
 
-## Annotations
+## Anotaciones
 
-- **Frozen quirk:** the switch state is never queried over UDP by design; the remembered-power-over-brightness heuristic above is the required display rule — do not "clean it up".
-- **No test suite:** `testDebugUnitTest` runs NO-SOURCE; scenarios here are review-verified only.
+- **Particularidad congelada:** por diseño, el estado del interruptor nunca se consulta por UDP; la heurística de "estado recordado tiene prioridad sobre el brillo" descrita arriba es la regla obligatoria para la visualización — no se debe "limpiar".
+- **No hay conjunto de pruebas:** `testDebugUnitTest` NO-SOURCE; los escenarios aquí se verificaron por revisión.

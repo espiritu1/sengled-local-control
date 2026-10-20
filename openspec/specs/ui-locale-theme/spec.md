@@ -1,69 +1,69 @@
-# UI Locale and Theme Specification
+# Interfaz: idioma y tema (Especificación)
 
-## Purpose
+## Propósito
 
-Baseline (current behavior) of locale handling, the forced-dark theme, string resources, and the main-screen elements in `MainActivity` and layouts. Regression reference only.
+Línea base (comportamiento actual) del manejo de idioma, el tema forzado a oscuro, los recursos de cadenas y los elementos de la pantalla principal en `MainActivity` y los layouts. Solo como referencia para regresiones.
 
-## Requirements
+## Requisitos
 
-### Requirement: Explicit Locale With Spanish Default
+### Requisito: Idioma explícito con español por defecto
 
-Spanish SHALL be the app default. The `lang` pref in `sengled_prefs` SHALL always be explicit (`"es"` or `"en"`, never device-locale fallback). `MainActivity.onCreate` SHALL apply it via `Locale.setDefault` plus the deprecated `resources.updateConfiguration`.
+El español DEBERÁ ser el idioma predeterminado de la aplicación. La preferencia `lang` en `sengled_prefs` DEBERÁ ser siempre explícita (`"es"` o `"en"`, nunca un respaldo al idioma del dispositivo). `MainActivity.onCreate` DEBERÁ aplicarla mediante `Locale.setDefault` además del método obsoleto `resources.updateConfiguration`.
 
-#### Scenario: First launch
+#### Escenario: Primer inicio
 
-- GIVEN no `lang` pref exists
-- WHEN `MainActivity` starts
-- THEN the app runs in Spanish (default)
+- DADO que no existe la preferencia `lang`
+- CUANDO se inicia `MainActivity`
+- ENTONCES la aplicación se ejecuta en español (predeterminado)
 
-#### Scenario: English selected
+#### Escenario: Inglés seleccionado
 
-- GIVEN `lang` = `"en"`
-- WHEN `MainActivity` starts
-- THEN all UI strings resolve from `values-en`
+- DADO que `lang` = `"en"`
+- CUANDO se inicia `MainActivity`
+- ENTONCES todas las cadenas de la interfaz se resuelven desde `values-en`
 
-### Requirement: Language Button as Status Indicator
+### Requisito: Botón de idioma como indicador de estado
 
-The language button SHALL show the CURRENT language ("ES"/"EN"), not the target language; toggling SHALL write the pref and call `recreate()`.
+El botón de idioma DEBERÁ mostrar el idioma ACTUAL ("ES"/"EN"), no el idioma objetivo; al alternarlo, DEBERÁ guardarse la preferencia y llamarse a `recreate()`.
 
-#### Scenario: Toggle while in Spanish
+#### Escenario: Alternar estando en español
 
-- GIVEN the app is in Spanish
-- WHEN the user taps the language button
-- THEN the button showed "ES", the pref becomes `"en"`, and the activity recreates in English
+- DADO que la aplicación está en español
+- CUANDO el usuario toca el botón de idioma
+- ENTONCES el botón mostraba "ES", la preferencia pasa a `"en"` y la actividad se recrea en inglés
 
-### Requirement: Forced-Dark Theme
+### Requisito: Tema forzado a oscuro
 
-`Theme.Sengled` SHALL be `Theme.Material3.DayNight.NoActionBar` with forced dark surfaces: `background_dark` #121212 (status bar and window background), cards #1E1E1E, drag-highlight #3A3A3A, amber primary #FFC107, status green #4CAF50, status red #FF5252. Layouts SHALL contain no hardcoded `android:text` (all `@string` or empty).
+`Theme.Sengled` DEBERÁ ser `Theme.Material3.DayNight.NoActionBar` con superficies forzadas a oscuro: `background_dark` #121212 (barra de estado y fondo de ventana), tarjetas #1E1E1E, resaltado de arrastre #3A3A3A, primario ámbar #FFC107, estado verde #4CAF50, estado rojo #FF5252. Los layouts NO DEBERÁN tener `android:text` codificado (todo debe ser `@string` o vacío).
 
-#### Scenario: Any screen renders
+#### Escenario: Renderizado de cualquier pantalla
 
-- GIVEN the app launches on any device
-- WHEN a layout inflates
-- THEN surfaces use the fixed dark palette regardless of system dark mode
+- DADO que la aplicación se inicia en cualquier dispositivo
+- CUANDO se infla un layout
+- ENTONCES las superficies usan la paleta oscura fija independientemente del modo oscuro del sistema
 
-### Requirement: String Resource Parity
+### Requisito: Paridad de recursos de cadenas
 
-`res/values/strings.xml` (Spanish) and `res/values-en/strings.xml` (English) SHALL each contain 135 strings in full parity.
+`res/values/strings.xml` (español) y `res/values-en/strings.xml` (inglés) DEBERÁN contener 135 cadenas cada uno, con total paridad entre ellos.
 
-#### Scenario: Resource audit
+#### Escenario: Auditoría de recursos
 
-- GIVEN both string files
-- WHEN they are compared
-- THEN every key exists in both with the same count
+- DADO que existen ambos archivos de cadenas
+- CUANDO se comparan
+- ENTONCES cada clave existe en ambos con el mismo número total de cadenas
 
-### Requirement: Main Screen Elements
+### Requisito: Elementos de la pantalla principal
 
-The main screen SHALL provide: a refresh button, an add-bulb button (chooser dialog: pair via wizard or manual add), an info dialog (inflated from `dialog_info_sections` + `dialog_info` inside a ScrollView with autoLink for URLs), the language button, a version label `v{versionName}` (versionName "8.0"), and the notification-disabled Snackbar.
+La pantalla principal DEBERÁ proporcionar: un botón de actualizar, un botón para añadir foco (diálogo de selección: vincular mediante asistente o alta manual), un diálogo de información (inflado desde `dialog_info_sections` + `dialog_info` dentro de un ScrollView con autoLink para URLs), el botón de idioma, una etiqueta de versión `v{versionName}` (versionName "8.0") y el Snackbar de notificaciones deshabilitadas.
 
-#### Scenario: Open info dialog
+#### Escenario: Abrir el diálogo de información
 
-- GIVEN the main screen
-- WHEN the user opens info
-- THEN the sections dialog appears scrollable with URLs tappable
+- DADO que está en la pantalla principal
+- CUANDO el usuario abre la información
+- ENTONCES aparece el diálogo de secciones, desplazable y con URLs seleccionables
 
-## Annotations
+## Anotaciones
 
-- **Hardcoded Spanish strings (frozen, NOT fixed):** `PairingWizardActivity` contains 16 user-facing hardcoded Spanish strings bypassing resources — 3 field errors ("Ingresá el nombre de la red", "Ingresá la contraseña", "Ingresá un nombre para el foco"), 12 pairing-log lines, and the success Toast "¡Foco '…' agregado!". This VIOLATES the project rule requiring `values/` + `values-en/` strings; recorded as existing behavior per the proposal's risk table, fix deferred to a later change. Details in `pairing-provisioning`.
-- **Dead resources/code — not spec'd:** `menu_main.xml` is never inflated (no `onCreateOptionsMenu`); `MainActivity.buildRoutineSubtitle()` has no callers (also noted in `routines-schedules`). Excluded from requirements.
-- **No test suite:** `testDebugUnitTest` runs NO-SOURCE; baseline is review-verified only.
+- **Cadenas en español codificadas (congeladas, NO corregidas):** `PairingWizardActivity` contiene 16 cadenas en español mostradas al usuario codificadas directamente, sin usar recursos — 3 errores de campo ("Ingresá el nombre de la red", "Ingresá la contraseña", "Ingresá un nombre para el foco"), 12 líneas de registro de vinculación y el Toast de éxito "¡Foco '…' agregado!". Esto VIOLA la regla del proyecto que exige cadenas en `values/` + `values-en/`; se registra como comportamiento existente según la tabla de riesgos de la propuesta y la corrección se difiere a un cambio posterior. Detalles en `pairing-provisioning`.
+- **Recursos/código muerto — no especificado:** `menu_main.xml` nunca se infla (no hay `onCreateOptionsMenu`); `MainActivity.buildRoutineSubtitle()` no tiene llamadas (también anotado en `routines-schedules`). Excluidos de los requisitos.
+- **No hay conjunto de pruebas:** `testDebugUnitTest` NO-SOURCE; la línea base se verificó por revisión.

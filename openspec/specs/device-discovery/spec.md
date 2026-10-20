@@ -1,74 +1,74 @@
-# Device Discovery Specification
+# Detección de dispositivos (Especificación)
 
-## Purpose
+## Propósito
 
-Baseline (current behavior) of refresh/discovery in `MainActivity.refresh()`/`reloadBulbs()`, `WifiDetector`, and `BulbRegistry` IP handling. Regression reference only.
+Línea base (comportamiento actual) de la actualización/detección en `MainActivity.refresh()`/`reloadBulbs()`, `WifiDetector` y el manejo de IP en `BulbRegistry`. Solo como referencia para regresiones.
 
-## Requirements
+## Requisitos
 
-### Requirement: Saved-IP Refresh Fast Path
+### Requisito: Ruta rápida de actualización con IP guardada
 
-Each refresh SHALL query every bulb's saved IP first via `udp.getState(ip)`. If a saved IP is set but unresponsive, the system SHALL SKIP the MAC scan and mark the bulb offline (keeps refresh fast, commit `c2a66cc`).
+Cada actualización DEBERÁ consultar primero la IP guardada de cada foco mediante `udp.getState(ip)`. Si hay una IP guardada pero no responde, el sistema DEBERÁ OMITIR el escaneo por MAC y marcar el foco como sin conexión (para mantener la actualización rápida, commit `c2a66cc`).
 
-#### Scenario: Saved IP unresponsive
+#### Escenario: IP guardada sin respuesta
 
-- GIVEN a bulb has a saved IP that does not answer
-- WHEN refresh runs
-- THEN no MAC scan is attempted for that bulb and it is shown offline
+- DADO que un foco tiene una IP guardada que no responde
+- CUANDO se ejecuta la actualización
+- ENTONCES no se intenta escaneo por MAC para ese foco y se muestra como sin conexión
 
-#### Scenario: Saved IP responsive
+#### Escenario: IP guardada responde
 
-- GIVEN a bulb has a saved IP that answers
-- WHEN refresh runs
-- THEN the bulb state is updated from the direct query
+- DADO que un foco tiene una IP guardada que responde
+- CUANDO se ejecuta la actualización
+- ENTONCES el estado del foco se actualiza desde la consulta directa
 
-### Requirement: MAC Scan Only When IP Is Blank
+### Requisito: Escaneo por MAC solo cuando la IP está vacía
 
-The MAC scan SHALL run only when the bulb's saved IP is blank (user skipped IP entry). On success the discovered IP SHALL be persisted via `BulbRegistry.updateBulbIp`.
+El escaneo por MAC DEBERÁ ejecutarse únicamente cuando la IP guardada del foco está vacía (el usuario omitió el ingreso de IP). En caso de éxito, la IP encontrada DEBERÁ guardarse mediante `BulbRegistry.updateBulbIp`.
 
-#### Scenario: Bulb added without IP
+#### Escenario: Foco añadido sin IP
 
-- GIVEN a bulb whose saved IP is blank
-- WHEN refresh runs
-- THEN `WifiDetector.findBulbByMac(mac, 12_000)` runs and a successful match is saved as the bulb's IP
+- DADO que un foco tiene la IP guardada vacía
+- CUANDO se ejecuta la actualización
+- ENTONCES se ejecuta `WifiDetector.findBulbByMac(mac, 12_000)` y, si hay coincidencia, la IP encontrada se guarda como IP del foco
 
-### Requirement: MAC Scan Mechanics
+### Requisito: Mecánica del escaneo por MAC
 
-`findBulbByMac` SHALL broadcast `{"func":"search_devices"}` to `255.255.255.255` AND sweep the phone's /24 subnet (hosts 1..254) on port 9080, listening for a reply whose `result.mac` matches after normalization (case-insensitive). A blank MAC SHALL abort immediately. The call SHALL use blocking I/O on a background thread only.
+`findBulbByMac` DEBERÁ enviar por broadcast `{"func":"search_devices"}` a `255.255.255.255` Y barrer la subred /24 del teléfono (hosts 1..254) en el puerto 9080, escuchando una respuesta cuyo `result.mac` coincida tras la normalización (sin distinción entre mayúsculas/minúsculas). Una MAC vacía DEBERÁ abortar inmediatamente. La llamada DEBERÁ usar E/S bloqueante únicamente en un hilo en segundo plano.
 
-#### Scenario: Matching reply
+#### Escenario: Respuesta coincidente
 
-- GIVEN a non-blank MAC
-- WHEN any probed host replies with that normalized MAC
-- THEN the reply's IP is returned
+- DADO que la MAC no está vacía
+- CUANDO cualquier host probado responde con esa MAC normalizada
+- ENTONCES se devuelve la IP de la respuesta
 
-#### Scenario: Blank MAC
+#### Escenario: MAC vacía
 
-- GIVEN an empty MAC string
-- WHEN `findBulbByMac` is called
-- THEN it aborts without sending probes
+- DADO que la cadena MAC está vacía
+- CUANDO se llama a `findBulbByMac`
+- ENTONCES se aborta sin enviar sondas
 
-### Requirement: Pairing-Time Discovery Window
+### Requisito: Ventana de detección durante la vinculación
 
-Discovery during pairing SHALL use the same `findBulbByMac` function with a 180 s window.
+La detección durante la vinculación DEBERÁ usar la misma función `findBulbByMac` con una ventana de 180 s.
 
-#### Scenario: Discovery from the wizard
+#### Escenario: Detección desde el asistente
 
-- GIVEN the wizard finished sending credentials
-- WHEN MAC discovery runs
-- THEN the same probe logic runs with a 180 s timeout instead of 12 s
+- DADO que el asistente terminó de enviar las credenciales
+- CUANDO se ejecuta la detección por MAC
+- ENTONCES se aplica la misma lógica de sondeo con un tiempo de espera de 180 s en lugar de 12 s
 
-### Requirement: Bulb IP Identity
+### Requisito: Identidad del foco e IP
 
-The bulb id SHALL be the last 6 lowercase hex chars of the MAC, shared between the wizard and manual add. IP SHALL be optional everywhere; a bulb can be re-found by MAC whenever its IP is blank.
+El id del foco DEBERÁ ser los últimos 6 caracteres hexadecimales en minúsculas de la MAC, compartido entre el asistente y el alta manual. La IP DEBERÁ ser opcional en todo momento; un foco puede volverse a encontrar por MAC cuando su IP esté vacía.
 
-#### Scenario: IP later cleared
+#### Escenario: IP borrada posteriormente
 
-- GIVEN a bulb whose IP was cleared to blank
-- WHEN refresh runs
-- THEN discovery falls back to the MAC scan for that bulb
+- DADO que la IP de un foco se borró (quedó vacía)
+- CUANDO se ejecuta la actualización
+- ENTONCES la detección recurre al escaneo por MAC para ese foco
 
-## Annotations
+## Anotaciones
 
-- **README drift:** the README claim that "Bulb IPs are defined in BulbRegistry.kt" is wrong at runtime — IPs live in SharedPreferences (`sengled_bulbs`); code is truth.
-- **Dead code — not spec'd:** none in this domain; related unused symbols are annotated in their owning specs.
+- **Desvío respecto al README:** la afirmación del README de que "las IP de los focos están definidas en BulbRegistry.kt" es incorrecta en tiempo de ejecución — las IP se almacenan en SharedPreferences (`sengled_bulbs`); el código es la fuente de verdad.
+- **Código muerto — no especificado:** ninguno en este dominio; los símbolos no usados relacionados se anotan en sus especificaciones correspondientes.

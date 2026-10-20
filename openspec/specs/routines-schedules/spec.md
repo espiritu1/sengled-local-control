@@ -1,109 +1,109 @@
-# Routines and Schedules Specification
+# Rutinas y horarios (Especificación)
 
-## Purpose
+## Propósito
 
-Baseline (current behavior) of routine persistence, firing, and `RoutineDialog`.
+Línea base (comportamiento actual) de la persistencia, ejecución y diálogo de rutinas (`RoutineDialog`).
 
-## Requirements
+## Requisitos
 
-### Requirement: One Routine Per Bulb With Fixed Defaults
+### Requisito: Una rutina por foco con valores predeterminados fijos
 
-The system SHALL support exactly ONE routine per bulb: `enabled`, `onMinutes`/`offMinutes` (minutes-since-midnight), `brightness` (1..100). Defaults ON 19:30, OFF 00:00, brightness 1; persisted in `sengled_prefs` as `routine_{enabled,on,off,brightness}_<id>`.
+El sistema DEBERÁ admitir exactamente UNA rutina por foco: `enabled`, `onMinutes`/`offMinutes` (minutos desde medianoche), `brightness` (1..100). Los valores predeterminados son ENCENDIDO a 19:30, APAGADO a 00:00, brillo 1; se guardan en `sengled_prefs` como `routine_{enabled,on,off,brightness}_<id>`.
 
-#### Scenario: New bulb
+#### Escenario: Foco nuevo
 
-- GIVEN no routine stored
-- WHEN its dialog opens
-- THEN defaults are ON 19:30, OFF 00:00, brightness 1
+- DADO que no hay una rutina guardada
+- CUANDO se abre su diálogo
+- ENTONCES los valores predeterminados son ENCENDIDO 19:30, APAGADO 00:00, brillo 1
 
-### Requirement: Routine Editor UI
+### Requisito: Interfaz de edición de rutinas
 
-The dialog SHALL use AM/PM pickers with an always-visible AM/PM toggle (`applyPeriod` preserves hour/minutes), a brightness SeekBar, and an enable switch. Saving SHALL call `ScheduleManager.save` and re-`startService`.
+El diálogo DEBERÁ usar selectores AM/PM con un conmutador AM/PM siempre visible (`applyPeriod` conserva hora/minutos), un SeekBar de brillo y un interruptor de habilitación. Al guardar, DEBERÁ llamarse a `ScheduleManager.save` y reiniciarse el servicio con `startService`.
 
-#### Scenario: Flip AM to PM
+#### Escenario: Cambiar AM a PM
 
-- GIVEN 19:30 set
-- WHEN the period toggles
-- THEN hour/minutes stay 7:30 and only the period changes
+- DADO que está establecido 19:30
+- CUANDO se cambia el periodo
+- ENTONCES la hora/minutos se mantienen en 7:30 y solo cambia el periodo
 
-### Requirement: Single-Owner Firing With Grace Windows
+### Requisito: Ejecución unificada con ventanas de gracia
 
-`RoutineService` SHALL own all firing: a `HandlerThread` runs `tick()`, firing due ON/OFF with grace +90 s forward, −10 min backward, idempotent via epoch-minute `last_fired_<bulb>_<on|off>` markers. ON SHALL fire `setBrightness` then `setSwitch(true)` (both must succeed to notify); OFF SHALL fire `setSwitch(false)`.
+`RoutineService` DEBERÁ ser el único responsable de la ejecución: un `HandlerThread` ejecuta `tick()`, que ejecuta los eventos ON/OFF programados con una ventana de gracia de +90 s hacia adelante y −10 min hacia atrás, siendo idempotente mediante marcadores `last_fired_<bulb>_<on|off>` por minuto de época. Para ON, DEBERÁ ejecutarse `setBrightness` y luego `setSwitch(true)` (ambos deben tener éxito para notificar); para OFF, DEBERÁ ejecutarse `setSwitch(false)`.
 
-#### Scenario: Due within grace
+#### Escenario: Dentro de la ventana de gracia
 
-- GIVEN ON time 12:00, tick at 12:00:30, marker unset
-- WHEN `tick()` evaluates it
-- THEN ON fires
+- DADO que ON está programado a las 12:00, el tick ocurre a las 12:00:30 y el marcador no está establecido
+- CUANDO `tick()` lo evalúa
+- ENTONCES se ejecuta ON
 
-#### Scenario: Beyond backward grace
+#### Escenario: Fuera de la ventana de gracia hacia atrás
 
-- GIVEN ON time 12:00, tick at 11:49:30 (beyond −10 min backward grace), marker unset
-- WHEN `tick()` evaluates it
-- THEN it is skipped
+- DADO que ON está programado a las 12:00, el tick ocurre a las 11:49:30 (fuera de los −10 min de gracia hacia atrás) y el marcador no está establecido
+- CUANDO `tick()` lo evalúa
+- ENTONCES se omite
 
-### Requirement: Failure Marker Written Before UDP
+### Requisito: Marcador de fallo escrito antes de UDP
 
-`fireActionIfDue` SHALL write the `last_fired` marker BEFORE attempting UDP, so a failed command is consumed and never retried by `tick()` or catch-up.
+`fireActionIfDue` DEBERÁ escribir el marcador `last_fired` ANTES de intentar el comando UDP, de modo que un comando fallido se consuma y nunca se reintente mediante `tick()` o catch-up.
 
-#### Scenario: UDP command fails
+#### Escenario: Comando UDP falla
 
-- GIVEN ON fired but the bulb did not respond
-- WHEN the marker was already written
-- THEN neither `tick()` nor catch-up retries it
+- DADO que se intentó ejecutar ON pero el foco no respondió
+- CUANDO el marcador ya se ha escrito
+- ENTONCES ni `tick()` ni catch-up lo reintentan
 
-### Requirement: Exact-Alarm Wake Kick
+### Requisito: Despertador exacto
 
-`tick()` SHALL sleep until the next event (or `next − 30 min`) and schedule an exact-alarm kick (`setExactAndAllowWhileIdle` → `setExact` → silently none) to `ACTION_ROUTINE_CHECK`, which merely restarts the service.
+`tick()` DEBERÁ dormir hasta el siguiente evento (o `next − 30 min`) y programar una activación mediante alarma exacta (`setExactAndAllowWhileIdle` → `setExact` → silenciosamente ninguna) a `ACTION_ROUTINE_CHECK`, que simplemente reinicia el servicio.
 
-#### Scenario: Alarm fires
+#### Escenario: Alarma dispara
 
-- GIVEN a kick is scheduled
-- WHEN the alarm fires
-- THEN the service restarts; no command is sent
+- DADO que se ha programado una activación
+- CUANDO la alarma dispara
+- ENTONCES el servicio se reinicia; no se envía ningún comando
 
-### Requirement: 30-Minute Reveal for Next Event
+### Requisito: Revelación de 30 minutos para el siguiente evento
 
-`tick()` SHALL post the next tick at `next − 30 min` (`NOTIF_AHEAD_MS`). The persistent status SHALL show "Próxima a las {time}" only within the last 30 min before the next event, else generic text.
+`tick()` DEBERÁ programar el siguiente tick a `next − 30 min` (`NOTIF_AHEAD_MS`). El estado persistente DEBERÁ mostrar "Próxima a las {time}" únicamente dentro de los últimos 30 min antes del siguiente evento; en caso contrario, mostrará un texto genérico.
 
-#### Scenario: Event within 30 minutes
+#### Escenario: Evento dentro de 30 minutos
 
-- GIVEN the next event is 25 minutes away
-- WHEN `updateStatusNotification` runs
-- THEN the time shows; at 45 minutes the generic text shows
+- DADO que el siguiente evento está a 25 minutos
+- CUANDO se ejecuta `updateStatusNotification`
+- ENTONCES se muestra la hora; a 45 minutos se muestra el texto genérico
 
-### Requirement: Silent Catch-Up Without Backward Grace
+### Requisito: Recuperación silenciosa sin ventana de gracia hacia atrás
 
-On default-network availability the system SHALL debounce 2 s, then `runCatchUp()` → `recoverTransitions()`: apply any passed transition with an unset `last_fired` marker, using `tick()` markers. Catch-up SHALL NOT force an expected state, SHALL post NO notification, and SHALL have NO backward grace — an earlier-same-day miss still recovers.
+Cuando la red predeterminada vuelve a estar disponible, el sistema DEBERÁ esperar 2 s, luego ejecutar `runCatchUp()` → `recoverTransitions()`: aplicar cualquier transición pasada cuyo marcador `last_fired` no esté establecido, utilizando los marcadores de `tick()`. La recuperación NO DEBERÁ forzar un estado esperado, NO DEBERÁ mostrar ninguna notificación y NO DEBERÁ tener ventana de gracia hacia atrás — una ejecución perdida de ese mismo día aún se recupera.
 
-#### Scenario: Reconnect after a missed ON
+#### Escenario: Reconexión tras un ON perdido
 
-- GIVEN network returns at 20:00, ON 19:30 unmarked
-- WHEN catch-up runs 2 s after availability
-- THEN ON fires once silently; a set marker sends nothing
+- DADO que la red vuelve a las 20:00, ON estaba programado a 19:30 y su marcador no está establecido
+- CUANDO catch-up se ejecuta 2 s después de la disponibilidad
+- ENTONCES ON se ejecuta una sola vez de forma silenciosa; si el marcador ya está establecido, no se envía nada
 
-### Requirement: Routines Do Not Write Last Power
+### Requisito: Las rutinas no escriben last_power
 
-Routine ON/OFF SHALL NOT write `last_power`; only user gestures in `MainActivity` do; the next refresh still shows the remembered user state.
+Las ejecuciones de rutina ON/OFF NO DEBERÁN escribir `last_power`; solo lo hacen los gestos del usuario en `MainActivity`; la siguiente actualización seguirá mostrando el estado recordado por el usuario.
 
-#### Scenario: Routine turns bulb on
+#### Escenario: Una rutina enciende el foco
 
-- GIVEN remembered state is off
-- WHEN the routine fires ON
-- THEN the next refresh still displays off (remembered state wins)
+- DADO que el estado recordado es apagado
+- CUANDO la rutina ejecuta ON
+- ENTONCES la siguiente actualización sigue mostrando apagado (el estado recordado tiene prioridad)
 
-### Requirement: Service Lifecycle
+### Requisito: Ciclo de vida del servicio
 
-`RoutineService` SHALL be `START_STICKY` and SHALL self-stop (cancel kick, clear handler, `stopForeground(STOP_FOREGROUND_REMOVE)`, `stopSelf`) when no enabled routine remains or on `ACTION_STOP`. It SHALL start from `MainActivity.onCreate` and on boot.
+`RoutineService` DEBERÁ ser `START_STICKY` y DEBERÁ detenerse por sí mismo (cancelar activación, limpiar handler, `stopForeground(STOP_FOREGROUND_REMOVE)`, `stopSelf`) cuando no queden rutinas habilitadas o cuando reciba `ACTION_STOP`. DEBERÁ iniciarse desde `MainActivity.onCreate` y en el arranque del dispositivo.
 
-#### Scenario: Last routine disabled
+#### Escenario: Última rutina deshabilitada
 
-- GIVEN the only routine is disabled
-- WHEN `ScheduleManager.save` restarts the service
-- THEN it finds none enabled and stops itself
+- DADO que la única rutina está deshabilitada
+- CUANDO `ScheduleManager.save` reinicia el servicio
+- ENTONCES detecta que no hay rutinas habilitadas y se detiene
 
-## Annotations
+## Anotaciones
 
-- **Dead code — not spec'd:** `hasEnabledRoutine` uncalled, `getLastBrightness` write-only, `buildRoutineSubtitle` uncalled.
-- **Frozen quirks:** marker-before-UDP and no-backward-grace catch-up are intentional (reconciliation removed to avoid reconnect flicker).
-- **Prefs split:** routines/`last_power`/`last_fired` in `sengled_prefs`; bulbs in `sengled_bulbs`.
+- **Código muerto — no especificado:** `hasEnabledRoutine` sin llamadas, `getLastBrightness` solo escritura, `buildRoutineSubtitle` sin llamadas.
+- **Particularidades congeladas:** escribir el marcador antes de UDP y la recuperación sin ventana de gracia hacia atrás son intencionales (se eliminó la reconciliación para evitar parpadeo al reconectar).
+- **División de preferencias:** rutinas/`last_power`/`last_fired` en `sengled_prefs`; focos en `sengled_bulbs`.
