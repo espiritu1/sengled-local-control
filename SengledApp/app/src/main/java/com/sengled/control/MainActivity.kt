@@ -466,28 +466,6 @@ class MainActivity : AppCompatActivity(), BulbAdapter.Listener {
         }
     }
 
-    private fun buildRoutineSubtitle(): String {
-        for (bulb in BulbRegistry.getBulbs(this)) {
-            val config = ScheduleManager.getRoutine(this, bulb.id)
-            if (config.enabled) {
-                return getString(
-                    R.string.main_subtitle_routine_active,
-                    ScheduleManager.getBulbName(this, bulb.id),
-                    formatTime(config.onMinutes),
-                    formatTime(config.offMinutes)
-                )
-            }
-        }
-        return getString(R.string.main_subtitle_no_routine)
-    }
-
-    private fun formatTime(minutes: Int): String {
-        val hour = minutes / 60
-        val minute = minutes % 60
-        val period = if (hour < 12) "AM" else "PM"
-        val hour12 = when (hour % 12) { 0 -> 12; else -> hour % 12 }
-        return String.format(Locale.US, "%d:%02d %s", hour12, minute, period)
-    }
 
     private fun openNotificationSettings() {
         val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
