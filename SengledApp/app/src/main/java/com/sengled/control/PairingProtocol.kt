@@ -35,9 +35,13 @@ object PairingProtocol {
         val resp = sendAndReceive(socket, req) ?: return null
         var mac = resp.optJSONObject("payload")?.optString("mac", "") ?: ""
         if (mac.length != 17) {
-            // Some bulblets don't return the MAC in the handshake response (only
+            // Some bulbs don't return the MAC in the handshake response (only
             // `result:true`). Fall back to the BSSID of the Wi-Fi network we're
-            // connected to — that IS the bulb's MAC when we're on its AP.
+            // connected to. NOTE: on the bulb's AP this BSSID is NOT necessarily
+            // the bulb's LAN MAC: they are two different interfaces of the same
+            // device and can differ in the last byte. The caller must re-check
+            // the real MAC via a `search_devices` LAN lookup once the bulb joins
+            // the home network.
             mac = fallbackMac?.replace(":", "")?.replace("-", "")?.uppercase() ?: ""
             if (mac.isEmpty()) return null
             // Normalize to XX:XX:XX:XX:XX:XX

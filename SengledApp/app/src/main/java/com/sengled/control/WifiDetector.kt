@@ -175,10 +175,20 @@ object WifiDetector {
     }
 
     /**
+     * Result of a LAN discovery: the bulb's current IP plus the MAC it reports
+     * over `search_devices` (in canonical `XX:XX:XX:XX:XX:XX` form).
+     *
+     * [mac] is the bulb's real LAN MAC. It can differ from the AP BSSID that the
+     * pairing handshake falls back to (they are two different interfaces of the
+     * same device), so callers should prefer [mac] over any BSSID-derived value.
+     */
+    data class DiscoveryResult(val ip: String, val mac: String)
+
+    /**
      * Discovers the bulb on the local network by broadcasting/sweeping
      * `search_devices` over UDP port 9080 and matching the reply MAC against
-     * [targetMac]. Returns the bulb's IP, or null if not found within
-     * [timeoutMs].
+     * [targetMac]. Returns the bulb's IP and reported MAC, or null if not found
+     * within [timeoutMs].
      *
      * The phone MUST be connected to the same WiFi network as the bulb (NOT the
      * bulb's AP) for this to work. This is blocking network I/O: call it from a
@@ -186,10 +196,15 @@ object WifiDetector {
      *
      * A blank or non-MAC [targetMac] aborts immediately so we never mistake an
      * unrelated device on the LAN for our bulb.
+     *
+     * Matching is done on the first 5 bytes (OUI + device prefix): the bulb's AP
+     * BSSID and its LAN MAC differ only in the last byte, so a full-MAC match
+     * against a BSSID-derived value would never find the bulb on the LAN.
      */
-    fun findBulbByMac(context: Context, targetMac: String, timeoutMs: Long = 180_000): String? {
-        val macNorm = targetMac.replace(":", "").replace("-", "").lowercase()
-        if (macNorm.isEmpty()) return null
+    fun findBulbByMac(context: Context, targetMac: String, timeoutMs: Long = 180_000): DiscoveryResult? {
+        val macNorm = normalizeMac(targetMac)
+        if (macNorm.length != 12) return null
+        val prefix = macNorm.take(10) // first 5 bytes
 
         val socket = createWifiSocket(context).apply { soTimeout = 1500 }
         val req = "{\"func\":\"search_devices\",\"param\":{}}".toByteArray(Charsets.UTF_8)
@@ -215,7 +230,10 @@ object WifiDetector {
                     }
                     val ip = pkt.address?.hostAddress ?: continue
                     val mac = extractMac(buf, pkt.length) ?: continue
-                    if (mac == macNorm) return ip
+                    if (mac.startsWith(prefix)) {
+                        val canonical = mac.chunked(2).joinToString(":").uppercase()
+                        return DiscoveryResult(ip, canonical)
+                    }
                 }
             }
         } finally {
@@ -223,6 +241,10 @@ object WifiDetector {
         }
         return null
     }
+
+    /** Strips separators from a MAC and lowercases it (`80a036b19373`). */
+    fun normalizeMac(mac: String): String =
+        mac.replace(":", "").replace("-", "").replace(".", "").lowercase()
 
     private const val BULB_DISCOVERY_PORT = 9080
 
@@ -255,7 +277,7 @@ object WifiDetector {
             val text = String(buf, 0, length, Charsets.UTF_8)
             val result = JSONObject(text).optJSONObject("result") ?: return null
             val mac = result.optString("mac", "") ?: ""
-            mac.replace(":", "").replace("-", "").lowercase().takeIf { it.isNotEmpty() }
+            normalizeMac(mac).takeIf { it.length == 12 }
         } catch (_: Exception) {
             null
         }

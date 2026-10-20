@@ -576,9 +576,17 @@ class PairingWizardActivity : AppCompatActivity() {
                 // result step with the known MAC so the user can type the IP they
                 // see in their router (a reliable fallback).
                 updateUi(txtStatus, txtLog, getString(R.string.pairing_searching_bulb), "")
-                val discoveredIp = WifiDetector.findBulbByMac(this@PairingWizardActivity, bulbMac, 180_000)
-                if (discoveredIp != null) {
-                    bulbIp = discoveredIp
+                val discovered = WifiDetector.findBulbByMac(this@PairingWizardActivity, bulbMac, 180_000)
+                if (discovered != null) {
+                    bulbIp = discovered.ip
+                    // The discovery replies with the bulb's REAL LAN MAC. That is
+                    // authoritative: the handshake fallback (AP BSSID) can differ
+                    // from it in the last byte, which would make the saved id/name
+                    // and every future MAC lookup wrong. Prefer the reported MAC.
+                    if (discovered.mac.isNotEmpty() && discovered.mac != bulbMac) {
+                        appendLog(txtLog, "MAC del handshake ($bulbMac) ajustada a la MAC real del foco: ${discovered.mac}")
+                        bulbMac = discovered.mac
+                    }
                 } else {
                     updateUi(txtStatus, txtLog, getString(R.string.pairing_verification_failed),
                         getString(R.string.pairing_scan_failed_hint))
@@ -641,8 +649,14 @@ class PairingWizardActivity : AppCompatActivity() {
             return
         }
 
-        // Generate a safe ID from the MAC (last 6 chars, no colons)
-        val bulbId = bulbMac.replace(":", "").takeLast(6).lowercase()
+        // Generate a safe ID from the MAC's 12 hex chars (last 6), ignoring
+        // any separator style. Stripping only ':' is not enough: the handshake
+        // may fall back to the AP BSSID, which Android returns dash separated
+        // ("80-A0-36-B1-93-73"), so the last 6 chars would be wrong and the id
+        // would drift by one digit from the MAC-derived value.
+        val bulbId = bulbMac.filter { it.isDigit() || it in 'a'..'f' || it in 'A'..'F' }
+            .takeLast(6)
+            .lowercase()
 
         val bulb = Bulb(
             id = bulbId,
