@@ -12,7 +12,7 @@ La data class `Bulb` DEBERÁ observarse tal como se define: `data class Bulb(id,
 
 ### Requisito: Almacenamiento exclusivamente en SharedPreferences
 
-Los focos DEBERÁN almacenarse únicamente en el archivo SharedPreferences `sengled_bulbs`: un array JSON bajo `bulbs_json` (`id`, `name`, `ip` por entrada) junto con las MAC como claves separadas `mac_<id>` en el mismo archivo. NO DEBERÁ haber valores predeterminados codificados; `loadPaired` DEBERÁ devolver `emptyList()` ante cualquier error de análisis.
+Los focos DEBERÁN almacenarse únicamente en el archivo SharedPreferences `sengled_bulbs`: un array JSON bajo `bulbs_json` (`id`, `name`, `ip` por entrada) junto con las MAC como claves separadas `mac_<id>` en el mismo archivo. NO DEBERÁ haber valores predeterminados codificados; `loadPaired` DEBERÁ devolver `emptyList()` ante cualquier error de análisis. Toda MAC nueva en `mac_<id>` DEBERÁ persistirse canónicamente como `XX:XX:XX:XX:XX:XX` (mayúsculas, dos puntos), cualquiera sea la notación. Los valores heredados (sin separadores, minúsculas) siguen valiendo porque `WifiDetector` normaliza ambos lados.
 
 #### Escenario: JSON corrupto
 
@@ -26,15 +26,33 @@ Los focos DEBERÁN almacenarse únicamente en el archivo SharedPreferences `seng
 - CUANDO se llama a `getMac(id)`
 - ENTONCES se devuelve la MAC guardada
 
+#### Escenario: Escritura canónica de MAC
+
+- DADO que se ingresa una MAC con separadores, sin ellos o con mayúsculas y minúsculas mixtas
+- CUANDO se persiste mediante `updateBulbMac`
+- ENTONCES se guarda una sola vez como `mac_<id>` en forma canónica `XX:XX:XX:XX:XX:XX`
+
 ### Requisito: Semántica de la API de BulbRegistry
 
-`BulbRegistry` DEBERÁ exponer `getBulbs`, `addBulb` (upsert por id), `updateBulbIp`, `removeBulb`, `reorderBulbs` (quien llama pasa el orden completo; los id desconocidos se descartan y los focos no listados se mantienen al final — defensivo) y `getMac`.
+`BulbRegistry` DEBERÁ exponer `getBulbs`, `addBulb` (upsert por id), `updateBulbIp`, `updateBulbMac`, `removeBulb`, `reorderBulbs` (quien llama pasa el orden completo; los id desconocidos se descartan y los focos no listados se mantienen al final — defensivo) y `getMac`. `updateBulbMac(context, bulbId, newMac)` DEBERÁ escribir únicamente `mac_<id>`, canonizarlo a mayúsculas `XX:XX:XX:XX:XX:XX` y NO modificar `bulb.id` ni `bulbs_json` (el id deriva de la MAC una sola vez al vincular y es clave de `name_<id>`, `routine_*_<id>`, `last_power_<id>`, `last_brightness_<id>`, `last_fired_<id>_*`).
 
 #### Escenario: Reordenar con id desconocido
 
 - DADO que el orden solicitado contiene un id que no existe en el almacenamiento
 - CUANDO se ejecuta `reorderBulbs`
 - ENTONCES el id desconocido se descarta y los focos existentes no listados se añaden al final
+
+#### Escenario: updateBulbMac escribe y canoniza
+
+- DADO que un foco tiene una MAC guardada
+- CUANDO se llama a `updateBulbMac` con una MAC en minúsculas o sin separadores
+- ENTONCES solo cambia `mac_<id>`, almacenada en mayúsculas `XX:XX:XX:XX:XX:XX`, y `bulbs_json` queda intacto
+
+#### Escenario: updateBulbMac preserva el id
+
+- DADO que un foco tiene id y claves `name_<id>` u otras `*_<id>`
+- CUANDO se cambia su MAC
+- ENTONCES `bulb.id` y todas las claves `*_<id>` permanecen sin cambios
 
 ### Requisito: La superposición de renombrado tiene prioridad sobre el registro
 
@@ -62,15 +80,33 @@ La lista DEBERÁ admitir renombrar con un máximo de 40 caracteres.
 - CUANDO el usuario guarda un nuevo nombre en el diálogo de renombrado
 - ENTONCES la entrada se limita a 40 caracteres, un nombre recortado no vacío se escribe como `name_<id>` en `sengled_prefs`, y `sengled_bulbs` conserva el nombre original
 
-### Requisito: Operaciones de lista (editar IP)
+### Requisito: Operaciones de lista (editar conexión)
 
-La lista DEBERÁ admitir editar la IP del foco.
+La lista DEBERÁ admitir editar la conexión del foco (IP y MAC) en cualquier momento tras la vinculación, con un diálogo de dos campos precargados y editables. Al escribir, la IP DEBERÁ insertar un `.` tras cada octeto de 1 a 3 dígitos (máximo 4) y la MAC un `:` cada 2 dígitos hexadecimales. Al guardar DEBERÁ validarse: IP, 4 octetos entre 0 y 255; MAC, si no está vacía, 6 pares hexadecimales. Una entrada inválida DEBERÁ bloquear el guardado con error visible y sin persistir. Una MAC vacía DEBERÁ limpiar `mac_<id>`. La IP DEBERÁ persistirse con `updateBulbIp` y la MAC con `updateBulbMac`; la tarjeta DEBERÁ usar la nueva IP para conectividad. El diálogo DEBERÁ ser desplazable para que el teclado en pantalla no oculte los campos.
 
-#### Escenario: La edición de IP se guarda en el registro
+#### Escenario: La edición se guarda en el registro
 
-- DADO que un foco vinculado tiene una IP guardada
-- CUANDO el usuario guarda una IP no vacía en el diálogo de edición de IP
-- ENTONCES `BulbRegistry.updateBulbIp` reescribe la `ip` del foco en `bulbs_json` (`sengled_bulbs`) y la tarjeta en memoria muestra la nueva IP
+- DADO que un foco tiene IP y MAC guardadas
+- CUANDO el usuario guarda una IP no vacía y una MAC válida
+- ENTONCES `updateBulbIp` reescribe la `ip` del foco en `bulbs_json` (`sengled_bulbs`), `updateBulbMac` reescribe la MAC en `mac_<id>`, y la tarjeta usa la nueva IP
+
+#### Escenario: Máscaras automáticas al escribir
+
+- DADO que los campos de IP y MAC están vacíos
+- CUANDO el usuario escribe octetos de 1 a 3 dígitos (máximo 4) o dígitos hexadecimales
+- ENTONCES la IP recibe un `.` tras cada octeto y la MAC un `:` cada 2 dígitos hexadecimales
+
+#### Escenario: Entrada inválida bloquea el guardado
+
+- DADO que se ingresó una IP que no son 4 octetos 0–255, o una MAC no vacía que no son 6 pares hexadecimales
+- CUANDO el usuario intenta guardar
+- ENTONCES se muestra un error visible y no se persiste ningún cambio
+
+#### Escenario: MAC vacía limpia mac_<id>
+
+- DADO que un foco vinculado tiene una MAC guardada
+- CUANDO el usuario borra el campo de MAC y guarda
+- ENTONCES se limpia `mac_<id>` y el resto del foco no cambia
 
 ### Requisito: Operaciones de lista (eliminar)
 
