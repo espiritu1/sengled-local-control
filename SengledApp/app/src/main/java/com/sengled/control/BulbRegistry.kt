@@ -15,11 +15,30 @@ object BulbRegistry {
 
     private const val PREFS_NAME = "sengled_bulbs"
     private const val KEY_BULBS = "bulbs_json"
+    private const val OLD_PREFS_NAME = "sengled_prefs"
 
     // ── Public API ─────────────────────────────────────────────────────
 
-    /** Load all bulbs from prefs. */
-    fun getBulbs(context: Context): List<Bulb> = loadPaired(context)
+    /** Load all bulbs from prefs, migrating legacy name overlay if present. */
+    fun getBulbs(context: Context): List<Bulb> {
+        val bulbs = loadPaired(context)
+        if (bulbs.isEmpty()) return bulbs
+        val oldPrefs = context.getSharedPreferences(OLD_PREFS_NAME, Context.MODE_PRIVATE)
+        val migrated = mutableMapOf<String, String>()
+        for (b in bulbs) {
+            val ov = oldPrefs.getString("name_${b.id}", null)?.trim()
+            if (!ov.isNullOrBlank() && ov != b.name) {
+                migrated[b.id] = ov
+            }
+        }
+        if (migrated.isEmpty()) return bulbs
+        val updated = bulbs.map { b -> migrated[b.id]?.let { b.copy(name = it) } ?: b }
+        savePaired(context, updated)
+        val ed = oldPrefs.edit()
+        migrated.keys.forEach { ed.remove("name_$it") }
+        ed.apply()
+        return updated
+    }
 
     /** Save a newly paired bulb. */
     fun addBulb(context: Context, bulb: Bulb, mac: String = "") {
@@ -31,6 +50,16 @@ object BulbRegistry {
             paired.add(bulb)
         }
         savePaired(context, paired, bulb.id, mac)
+    }
+
+    /** Rename a bulb (writes to the single source of truth). */
+    fun renameBulb(context: Context, bulbId: String, newName: String) {
+        val paired = loadPaired(context).toMutableList()
+        val idx = paired.indexOfFirst { it.id == bulbId }
+        if (idx < 0) return
+        val b = paired[idx]
+        paired[idx] = b.copy(name = newName)
+        savePaired(context, paired)
     }
 
     /** Update the IP of an existing bulb (paired only). */

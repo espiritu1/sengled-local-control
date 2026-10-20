@@ -54,9 +54,7 @@ class MainActivity : AppCompatActivity(), BulbAdapter.Listener {
         @Suppress("DEPRECATION")
         resources.updateConfiguration(config, resources.displayMetrics)
 
-        bulbs += BulbRegistry.getBulbs(this).map { bulb ->
-            bulb.copy(name = prefs.getString("name_${bulb.id}", null) ?: bulb.name)
-        }
+        bulbs += BulbRegistry.getBulbs(this)
 
         adapter = BulbAdapter(bulbs, this)
         binding.recyclerBulbs.layoutManager = LinearLayoutManager(this)
@@ -138,9 +136,7 @@ class MainActivity : AppCompatActivity(), BulbAdapter.Listener {
     }
 
     private fun reloadBulbs() {
-        val freshBulbs = BulbRegistry.getBulbs(this).map { bulb ->
-            bulb.copy(name = prefs.getString("name_${bulb.id}", null) ?: bulb.name)
-        }
+        val freshBulbs = BulbRegistry.getBulbs(this)
         // Synchronize adapter with the persisted list: add new bulbs, remove
         // ones deleted elsewhere, keep existing ones untouched.
         val freshIds = freshBulbs.map { it.id }.toSet()
@@ -365,7 +361,7 @@ class MainActivity : AppCompatActivity(), BulbAdapter.Listener {
     }
 
     override fun onRename(bulb: Bulb, newName: String) {
-        prefs.edit().putString("name_${bulb.id}", newName).apply()
+        BulbRegistry.renameBulb(this, bulb.id, newName)
         val latest = bulbs.firstOrNull { it.id == bulb.id } ?: bulb
         updateBulb(latest.copy(name = newName))
     }

@@ -64,9 +64,7 @@ object ScheduleManager {
     }
 
     fun getBulbName(context: Context, bulbId: String): String =
-        prefs(context).getString("name_$bulbId", null)
-            ?: BulbRegistry.getBulbs(context).firstOrNull { it.id == bulbId }?.name
-            ?: bulbId
+        BulbRegistry.getBulbs(context).firstOrNull { it.id == bulbId }?.name ?: bulbId
 
     fun setLastBrightness(context: Context, bulbId: String, brightness: Int) {
         prefs(context).edit()
