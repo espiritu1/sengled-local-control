@@ -163,4 +163,37 @@
     <string name="pairing_cancel_confirm_message">The bulb pairing process will stop.</string>
     <string name="pairing_cancel_confirm_positive">Cancel pairing</string>
     <string name="pairing_cancel_confirm_negative">Continue</string>
+
+    <!-- Wizard field validation errors -->
+    <string name="pairing_err_ssid_empty">Enter the network name</string>
+    <string name="pairing_err_password_empty">Enter the password</string>
+    <string name="pairing_err_name_empty">Enter a name for the bulb</string>
+    <string name="pairing_err_rehandshake">The bulb did not confirm the re-handshake</string>
+    <string name="pairing_err_credentials_rejected">The bulb rejected the WiFi credentials</string>
+
+    <!-- Result and suggested name -->
+    <string name="pairing_default_name">Bulb %1$s</string>
+    <string name="pairing_toast_added">Bulb \'%1$s\' added!</string>
+
+    <!-- Pairing log shown on screen -->
+    <string name="pairing_log_broker_start">Starting MQTT broker at %1$s:8883…</string>
+    <string name="pairing_log_broker_ready">MQTT broker ready (TLS)</string>
+    <string name="pairing_log_broker_fail">⚠ Could not start the MQTT broker — the bulb may blink</string>
+    <string name="pairing_log_server_start">Pairing server active at %1$s:57542</string>
+    <string name="pairing_log_bssid">Current BSSID (MAC fallback): %1$s</string>
+    <string name="pairing_log_handshake_ok">Handshake OK on attempt %1$d</string>
+    <string name="pairing_log_attempt_fail">Attempt %1$d: %2$s</string>
+    <string name="pairing_log_no_response">no response</string>
+    <string name="pairing_log_mac">MAC: %1$s</string>
+    <string name="pairing_log_scanning">Scanning WiFi networks…</string>
+    <string name="pairing_log_networks_found">Networks found: %1$d</string>
+    <string name="pairing_log_rehandshake">Re-handshake…</string>
+    <string name="pairing_log_sending_creds">Sending credentials to %1$s…</string>
+    <string name="pairing_log_finishing">Finishing configuration…</string>
+    <string name="pairing_log_creds_sent">Credentials sent. Connect your phone to \"%1$s\"…</string>
+    <string name="pairing_log_on_network">You are now on \"%1$s\". Searching for the bulb on the network…</string>
+    <string name="pairing_log_mac_adjusted">Handshake MAC (%1$s) adjusted to the bulb\'s real MAC: %2$s</string>
+    <string name="pairing_log_error">Error: %1$s</string>
+    <string name="pairing_log_na">n/a</string>
+    <string name="pairing_error_general">Error</string>
 </resources>

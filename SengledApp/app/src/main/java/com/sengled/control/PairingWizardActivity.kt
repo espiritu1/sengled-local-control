@@ -257,11 +257,11 @@ class PairingWizardActivity : AppCompatActivity() {
                 password = editPass.text?.toString()?.trim() ?: ""
 
                 if (ssid.isEmpty()) {
-                    editSsid.error = "Ingresá el nombre de la red"
+                    editSsid.error = getString(R.string.pairing_err_ssid_empty)
                     return
                 }
                 if (password.isEmpty()) {
-                    editPass.error = "Ingresá la contraseña"
+                    editPass.error = getString(R.string.pairing_err_password_empty)
                     return
                 }
                 showStep(2)
@@ -420,12 +420,12 @@ class PairingWizardActivity : AppCompatActivity() {
                 // connect after joining the home network. The ESP8266 firmware
                 // requires TLS — without a working MQTT connection the bulb
                 // blinks indefinitely.
-                appendLog(txtLog, "Iniciando broker MQTT en $lanIp:8883…")
+                appendLog(txtLog, getString(R.string.pairing_log_broker_start, lanIp))
                 mqttAcquired = MqttBroker.acquire()
                 if (mqttAcquired) {
-                    appendLog(txtLog, "Broker MQTT listo (TLS)")
+                    appendLog(txtLog, getString(R.string.pairing_log_broker_ready))
                 } else {
-                    appendLog(txtLog, "⚠ No se pudo iniciar broker MQTT — el foco puede parpadear")
+                    appendLog(txtLog, getString(R.string.pairing_log_broker_fail))
                 }
 
                 // Start the pairing HTTP server with the correct broker address
@@ -435,7 +435,7 @@ class PairingWizardActivity : AppCompatActivity() {
                     brokerPort = 8883
                     start()
                 }
-                appendLog(txtLog, "Servidor de pairing activo en $lanIp:57542")
+                appendLog(txtLog, getString(R.string.pairing_log_server_start, lanIp))
 
                 // Get phone IP on bulb AP (192.168.8.x) — sent in the credential
                 // payload so the protocol stays well-formed.
@@ -469,7 +469,7 @@ class PairingWizardActivity : AppCompatActivity() {
                 // back to the BSSID of the AP we're connected to (the bulb's MAC
                 // when on its AP), like the desktop tool does with an ARP lookup.
                 val fallbackMac = WifiDetector.getConnectedBssid(this@PairingWizardActivity)
-                appendLog(txtLog, "BSSID actual (fallback MAC): ${fallbackMac ?: "n/a"}")
+                appendLog(txtLog, getString(R.string.pairing_log_bssid, fallbackMac ?: getString(R.string.pairing_log_na)))
                 for (attempt in 1..maxAttempts) {
                     if (pairingCancelled) return@Thread
                     if (attempt > 1) {
@@ -483,10 +483,14 @@ class PairingWizardActivity : AppCompatActivity() {
                     socket.soTimeout = 2000
                     handshake = PairingProtocol.handshake(socket, fallbackMac)
                     if (handshake != null) {
-                        appendLog(txtLog, "Handshake OK en intento $attempt")
+                        appendLog(txtLog, getString(R.string.pairing_log_handshake_ok, attempt))
                         break
                     } else if (attempt % 5 == 0) {
-                        appendLog(txtLog, "Intento $attempt: ${PairingProtocol.lastTransportError ?: "sin respuesta"}")
+                        appendLog(txtLog, getString(
+                            R.string.pairing_log_attempt_fail,
+                            attempt,
+                            PairingProtocol.lastTransportError ?: getString(R.string.pairing_log_no_response)
+                        ))
                         if (attempt == 5) PairingProtocol.logNetworkState(this@PairingWizardActivity)
                     }
                 }
@@ -501,22 +505,22 @@ class PairingWizardActivity : AppCompatActivity() {
                     return@Thread
                 }
                 bulbMac = handshake.mac
-                appendLog(txtLog, "MAC: $bulbMac")
+                appendLog(txtLog, getString(R.string.pairing_log_mac, bulbMac))
                 if (pairingCancelled) return@Thread
 
                 // Step 2: Scan WiFi
-                appendLog(txtLog, "Escaneando redes WiFi…")
+                appendLog(txtLog, getString(R.string.pairing_log_scanning))
                 PairingProtocol.scanWifi(socket)
                 Thread.sleep(5000)
                 val networks = PairingProtocol.getApList(socket)
-                appendLog(txtLog, "Redes encontradas: ${networks.size}")
+                appendLog(txtLog, getString(R.string.pairing_log_networks_found, networks.size))
                 if (pairingCancelled) return@Thread
 
                 // Step 3: Re-handshake
-                appendLog(txtLog, "Re-handshake…")
+                appendLog(txtLog, getString(R.string.pairing_log_rehandshake))
                 if (!PairingProtocol.reHandshake(socket)) {
                     updateUi(txtStatus, txtLog, getString(R.string.pairing_error_handshake),
-                        "El foco no confirmó el re-handshake")
+                        getString(R.string.pairing_err_rehandshake))
                     if (processBound) WifiDetector.unbindProcess(this@PairingWizardActivity)
                     socket.close()
                     return@Thread
@@ -528,13 +532,13 @@ class PairingWizardActivity : AppCompatActivity() {
                 // verification endpoints — the bulb will be on the home network
                 // after switching and needs to reach our servers there.
                 updateUi(txtStatus, txtLog, getString(R.string.pairing_sending_credentials), "")
-                appendLog(txtLog, "Enviando credenciales a $ssid…")
+                appendLog(txtLog, getString(R.string.pairing_log_sending_creds, ssid))
                 val sent = PairingProtocol.sendCredentials(
                     socket, ssid, password, null, lanIp, 57542
                 )
                 if (!sent) {
                     updateUi(txtStatus, txtLog, getString(R.string.pairing_error_credentials),
-                        "El foco rechazó las credenciales WiFi")
+                        getString(R.string.pairing_err_credentials_rejected))
                     if (processBound) WifiDetector.unbindProcess(this@PairingWizardActivity)
                     socket.close()
                     return@Thread
@@ -542,7 +546,7 @@ class PairingWizardActivity : AppCompatActivity() {
                 if (pairingCancelled) return@Thread
 
                 // Step 5: End config
-                appendLog(txtLog, "Finalizando configuración…")
+                appendLog(txtLog, getString(R.string.pairing_log_finishing))
                 PairingProtocol.endConfig(socket)
                 socket.close()
                 // The socket is closed and credentials sent; release the bulb-AP
@@ -559,7 +563,7 @@ class PairingWizardActivity : AppCompatActivity() {
                     getString(R.string.pairing_switch_network),
                     getString(R.string.pairing_switch_network_hint, ssid)
                 )
-                appendLog(txtLog, "Credenciales enviadas. Conecta el celular a \"$ssid\"…")
+                appendLog(txtLog, getString(R.string.pairing_log_creds_sent, ssid))
 
                 val leftAp = WifiDetector.waitOffBulbAp(this@PairingWizardActivity, 180_000)
                 if (!leftAp) {
@@ -567,7 +571,7 @@ class PairingWizardActivity : AppCompatActivity() {
                         getString(R.string.pairing_no_network_switch, ssid))
                     return@Thread
                 }
-                appendLog(txtLog, "Ya estás en \"$ssid\". Buscando el foco en la red…")
+                appendLog(txtLog, getString(R.string.pairing_log_on_network, ssid))
                 if (pairingCancelled) return@Thread
 
                 // Step 7: Scan the LAN until we find the bulb by its MAC. The bulb
@@ -584,7 +588,7 @@ class PairingWizardActivity : AppCompatActivity() {
                     // from it in the last byte, which would make the saved id/name
                     // and every future MAC lookup wrong. Prefer the reported MAC.
                     if (discovered.mac.isNotEmpty() && discovered.mac != bulbMac) {
-                        appendLog(txtLog, "MAC del handshake ($bulbMac) ajustada a la MAC real del foco: ${discovered.mac}")
+                        appendLog(txtLog, getString(R.string.pairing_log_mac_adjusted, bulbMac, discovered.mac))
                         bulbMac = discovered.mac
                     }
                 } else {
@@ -598,7 +602,7 @@ class PairingWizardActivity : AppCompatActivity() {
                 handler.post { showStep(4) }
 
             } catch (e: Exception) {
-                updateUi(txtStatus, txtLog, "Error: ${e.message}", e.stackTraceToString())
+                updateUi(txtStatus, txtLog, getString(R.string.pairing_error_general), getString(R.string.pairing_log_error, e.message ?: ""))
             } finally {
                 // Release the broker reference acquired for pairing. The shared
                 // broker stays alive if the MqttBrokerService holds it. Never
@@ -631,7 +635,7 @@ class PairingWizardActivity : AppCompatActivity() {
         }
 
         // Suggest a default name
-        editName.setText("Foco ${bulbMac.takeLast(5)}")
+        editName.setText(getString(R.string.pairing_default_name, bulbMac.takeLast(5)))
     }
 
     private fun saveBulbAndFinish() {
@@ -645,7 +649,7 @@ class PairingWizardActivity : AppCompatActivity() {
         val ip = editStaticIp.text?.toString()?.trim()?.ifEmpty { bulbIp } ?: ""
 
         if (name.isEmpty()) {
-            editName.error = "Ingresá un nombre para el foco"
+            editName.error = getString(R.string.pairing_err_name_empty)
             return
         }
 
@@ -665,7 +669,7 @@ class PairingWizardActivity : AppCompatActivity() {
         )
         BulbRegistry.addBulb(this, bulb, bulbMac)
 
-        Toast.makeText(this, "¡Foco '$name' agregado!", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, getString(R.string.pairing_toast_added, name), Toast.LENGTH_SHORT).show()
 
         // Return to main screen
         val intent = Intent(this, MainActivity::class.java)

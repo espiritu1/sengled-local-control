@@ -163,4 +163,37 @@
     <string name="pairing_cancel_confirm_message">Se va a detener el proceso de pareo del foco.</string>
     <string name="pairing_cancel_confirm_positive">Cancelar pareo</string>
     <string name="pairing_cancel_confirm_negative">Seguir</string>
+
+    <!-- Errores de validación de campos del asistente -->
+    <string name="pairing_err_ssid_empty">Ingresá el nombre de la red</string>
+    <string name="pairing_err_password_empty">Ingresá la contraseña</string>
+    <string name="pairing_err_name_empty">Ingresá un nombre para el foco</string>
+    <string name="pairing_err_rehandshake">El foco no confirmó el re-handshake</string>
+    <string name="pairing_err_credentials_rejected">El foco rechazó las credenciales WiFi</string>
+
+    <!-- Resultado y nombre sugerido -->
+    <string name="pairing_default_name">Foco %1$s</string>
+    <string name="pairing_toast_added">¡Foco \'%1$s\' agregado!</string>
+
+    <!-- Registro (log) del proceso de pareo mostrado en pantalla -->
+    <string name="pairing_log_broker_start">Iniciando broker MQTT en %1$s:8883…</string>
+    <string name="pairing_log_broker_ready">Broker MQTT listo (TLS)</string>
+    <string name="pairing_log_broker_fail">⚠ No se pudo iniciar broker MQTT — el foco puede parpadear</string>
+    <string name="pairing_log_server_start">Servidor de pairing activo en %1$s:57542</string>
+    <string name="pairing_log_bssid">BSSID actual (fallback MAC): %1$s</string>
+    <string name="pairing_log_handshake_ok">Handshake OK en intento %1$d</string>
+    <string name="pairing_log_attempt_fail">Intento %1$d: %2$s</string>
+    <string name="pairing_log_no_response">sin respuesta</string>
+    <string name="pairing_log_mac">MAC: %1$s</string>
+    <string name="pairing_log_scanning">Escaneando redes WiFi…</string>
+    <string name="pairing_log_networks_found">Redes encontradas: %1$d</string>
+    <string name="pairing_log_rehandshake">Re-handshake…</string>
+    <string name="pairing_log_sending_creds">Enviando credenciales a %1$s…</string>
+    <string name="pairing_log_finishing">Finalizando configuración…</string>
+    <string name="pairing_log_creds_sent">Credenciales enviadas. Conectá el celular a \"%1$s\"…</string>
+    <string name="pairing_log_on_network">Ya estás en \"%1$s\". Buscando el foco en la red…</string>
+    <string name="pairing_log_mac_adjusted">MAC del handshake (%1$s) ajustada a la MAC real del foco: %2$s</string>
+    <string name="pairing_log_error">Error: %1$s</string>
+    <string name="pairing_log_na">n/a</string>
+    <string name="pairing_error_general">Error</string>
 </resources>
